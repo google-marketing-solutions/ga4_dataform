@@ -1,0 +1,112 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+config {
+  type: "incremental",
+  schema: constants.STAGING_DATASET,
+  description: "Staging model for GA4 events_* table. Basic column casting and value extractions are performed here",
+  bigquery: {
+    partitionBy: "event_date",
+    clusterBy: ["user_pseudo_id", "ga_session_id"]
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(event_date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where event_date >= event_date_checkpoint`)
+  }
+}
+
+with
+  source as (
+    select
+      event_timestamp, --utc
+      datetime(timestamp_seconds(cast(event_timestamp / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
+      cast(event_date as date format 'yyyymmdd') as event_date, --event_date is already reported in ga4 property reporting time zone
+      lower(replace(trim(event_name), " ", "_")) as event_name,
+      event_params,
+      event_previous_timestamp,
+      event_value_in_usd,
+      event_bundle_sequence_id,
+      event_server_timestamp_offset,
+      user_id,
+      user_pseudo_id,
+      user_properties,
+      user_first_touch_timestamp,
+      device,
+      geo,
+      app_info,
+      is_active_user,
+      (
+      select
+        as struct traffic_source.source as source,
+        traffic_source.medium as medium,
+        traffic_source.name as campaign
+      ) as traffic_source,
+      (
+      select
+        as struct collected_traffic_source.manual_campaign_id as manual_campaign_id,
+        lower(collected_traffic_source.manual_campaign_name) as manual_campaign_name,
+        lower(collected_traffic_source.manual_source) as manual_source,
+        lower(collected_traffic_source.manual_medium) as manual_medium,
+        lower(collected_traffic_source.manual_content) as manual_content,
+        lower(collected_traffic_source.manual_term) as manual_term,
+        collected_traffic_source.gclid as gclid,
+        collected_traffic_source.dclid as dclid
+      ) as collected_traffic_source,
+      stream_id,
+      platform,
+      ecommerce,
+      items,
+      ${helpers.unnest_column('event_params', 'ga_session_id', 'int_value')} as ga_session_id,
+      ${helpers.unnest_column('event_params', 'page_location')} as page_location,
+      ${helpers.unnest_column('event_params', 'ga_session_number', 'int_value')} as ga_session_number,
+      ${helpers.unnest_column('event_params', 'engagement_time_msec', 'int_value')} as engagement_time_msec,
+      ${helpers.unnest_column('event_params', 'page_title')} as page_title,
+      ${helpers.unnest_column('event_params', 'page_referrer')} as page_referrer,
+      (
+      select
+        as struct lower(${helpers.unnest_column('event_params', 'source')}) as source,
+        lower(${helpers.unnest_column('event_params', 'medium')}) as medium,
+        lower(${helpers.unnest_column('event_params', 'campaign')}) as campaign,
+        lower(${helpers.unnest_column('event_params', 'content')}) as content,
+        lower(${helpers.unnest_column('event_params', 'term')}) as term,
+        ${helpers.unnest_column('event_params', 'gclid')} as gclid,
+        ${helpers.unnest_column('event_params', 'dclid')} as dclid
+      ) as event_traffic_source,
+      coalesce( (${helpers.unnest_column('event_params', 'session_engaged', 'int_value')}),
+                (case
+                  when (${helpers.unnest_column('event_params', 'session_engaged')}) = "1" then 1
+                end
+          ) ) as session_engaged
+    from
+      ${ref('events_*')}
+    where
+      _table_suffix not like "%intraday%"
+      and _table_suffix not like "%fresh%"
+      and cast(_table_suffix as date format 'yyyymmdd') >= event_date_checkpoint
+  )
+select
+  *
+from
+  source

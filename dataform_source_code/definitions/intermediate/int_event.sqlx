@@ -1,0 +1,96 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+config {
+    type: "incremental",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model that updates staging events data.",
+    bigquery: {
+        partitionBy: "event_date",
+        clusterBy: ["user_key", "ga_session_key"]
+    }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(event_date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where event_date >= event_date_checkpoint`)
+  }
+}
+
+with staging as (
+    select
+        stg_events.* except(event_traffic_source, collected_traffic_source, event_timestamp, event_datetime),
+        ${helpers.adjust_campaign_timestamp('stg_events')} as event_timestamp,
+        datetime(timestamp_seconds(cast(${helpers.adjust_campaign_timestamp('stg_events')} / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
+        to_base64(md5(concat(user_pseudo_id, stream_id))) as user_key,
+        to_base64(md5(concat(user_pseudo_id, stream_id, ga_session_id))) as ga_session_key,
+        --the below is to deal with misattribution of cpc to organic
+        (
+        select
+        as struct
+            event_traffic_source.source as source,
+            event_traffic_source.medium as medium,
+            event_traffic_source.campaign as campaign,
+            event_traffic_source.content as content,
+            event_traffic_source.term as term,
+            event_traffic_source.gclid as gclid,
+            event_traffic_source.dclid as dclid
+        ) as event_traffic_source,
+        (
+        select
+        as struct
+            ${helpers.update_paid_search_traffic_source('collected_traffic_source', 'manual_source', 'stg_events', null)} as source,
+            ${helpers.update_paid_search_traffic_source('collected_traffic_source', 'manual_medium', 'stg_events', null)} as medium,
+            ${helpers.update_paid_search_traffic_source('collected_traffic_source', 'manual_campaign_name', 'stg_events', when(constants.GADS_GET_DATA, 'int_ads_click_campaign.campaign_name', null))} as campaign,
+            collected_traffic_source.manual_campaign_id as manual_campaign_id,
+            collected_traffic_source.manual_campaign_name as manual_campaign_name,
+            collected_traffic_source.manual_source as manual_source,
+            collected_traffic_source.manual_medium as manual_medium,
+            collected_traffic_source.manual_content as manual_content,
+            collected_traffic_source.manual_term as manual_term,
+            collected_traffic_source.gclid,
+            collected_traffic_source.dclid
+        ) as collected_traffic_source,
+        case
+            when (stg_non_custom_events.event_name is null and stg_events.event_traffic_source.medium is null)
+            --stg_non_custom_events.event_name is null indicates the event is a custom event.
+                then 3
+            when stg_events.event_name in ('firebase_campaign', 'campaign_details')
+                then 1
+            when stg_events.event_name in ('first_visit', 'first_open')
+                then 0
+            else 2
+        end as event_sort_order --event source order is used to define the event priority in case it falls on the same timestamp of another when determining session traffic sources.
+    from ${ref('stg_events')} as stg_events
+        left join ${ref('stg_non_custom_events')} as stg_non_custom_events
+        on stg_events.event_name = stg_non_custom_events.event_name
+        --the above join on stg_non_custom_events aims to identify custom events from automatically collected and recommended events.
+        --custom events sometimes miss values for traffic sources and could cause attribution errors
+        --when trying to identify the first traffic source for sessions with custom event
+        --that are sent with no values for source/medium on the exact same timestamp as the first session event (page_view etc...),
+        --we see an overattribution to null traffic sources.
+        ${when(constants.GADS_GET_DATA, `left join ${constants.INTERMEDIATE_DATASET}.int_ads_click_campaign as int_ads_click_campaign on stg_events.collected_traffic_source.gclid = int_ads_click_campaign.gclid`)}
+    where event_date >= event_date_checkpoint
+)
+select
+    *
+from staging
