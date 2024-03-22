@@ -75,7 +75,7 @@ with session_first_last_source as (
                     a.last_non_null_traffic_source,
                     null) ignore nulls)
       over(partition by a.user_key order by a.ga_session_id
-      range between ${constants.SESSION_LOOKBACK_WINDOW} preceding and 1 preceding
+      range between ${constants.ALL_EVENTS_LOOKBACK_WINDOW} preceding and 1 preceding
       ),
       a.first_traffic_source
      ) as last_non_direct_traffic_source

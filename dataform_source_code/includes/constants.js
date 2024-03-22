@@ -22,7 +22,7 @@ const STAGING_DATASET = "ga4_dataform_staging";
 const INTERMEDIATE_DATASET = "ga4_dataform_intermediate";
 const OUTPUT_DATASET = "ga4_dataform_output";
 const START_DATE = 20230820; /* data will be pulled starting this date */
-const SESSION_LOOKBACK_WINDOW = 7776000; /* number of lookback days in seconds when looking at last non-direct session source and non-acquisition conversion events, default is 90 days (86400 seconds in a day)*/
+const ALL_EVENTS_LOOKBACK_WINDOW = 7776000; /* number of lookback days in seconds when looking at last non-direct session source and non-acquisition conversion events, default is 90 days (86400 seconds in a day)*/
 const AQUISITION_EVENTS_LOOKBACK_WINDOW = 2592000; /* number of lookback days in seconds when looking at acquisition conversion events (first_open and first_visit), default is 30 days (86400 seconds in a day)*/
 
 /* Google Ads specific variables (optional) */
@@ -40,7 +40,7 @@ module.exports = {
     INTERMEDIATE_DATASET,
     OUTPUT_DATASET,
     START_DATE,
-    SESSION_LOOKBACK_WINDOW,
+    ALL_EVENTS_LOOKBACK_WINDOW,
     GADS_SOURCE_PROJECT,
     GADS_SOURCE_DATASET,
     GADS_GET_DATA,
