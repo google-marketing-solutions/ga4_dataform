@@ -1,55 +1,67 @@
 /**
- * Copyright 2024 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+* Copyright 2024 Google LLC
+*
+* Licensed under the Apache License, Version 2.0 (the "License");
+* you may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*      http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing, software
+* distributed under the License is distributed on an "as IS" BasIS,
+* WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+* See the License for the specific language governing permissions and
+* limitations under the License.
+*/
+
 config {
-    type: "table",
-    schema: constants.OUTPUT_DATASET,
-    description: "Events model, outputs one row per event, in addition to event attribution fields.",
-    bigquery: {
-        partitionBy: "event_date"
-    }
+  type: "table",
+  schema: constants.OUTPUT_DATASET,
+  description: "Events model, outputs one row per event, in addition to event attribution fields.",
+  bigquery: {
+      partitionBy: "event_date"
+  }
 }
 
-with final as (
+with int_event as (
+  select
+    *
+  from
+    ${ref('int_event')}
+  order by
+    user_key,
+    event_timestamp desc
+)
+, final as (
   select
     a.*,
-    case when event_name in ('first_visit', 'first_open') then
-        if(coalesce(a.collected_traffic_source.source, a.collected_traffic_source.medium, a.collected_traffic_source.campaign) is null,
-        last_value(if(coalesce(a.collected_traffic_source.source, a.collected_traffic_source.medium, a.collected_traffic_source.campaign) is not null,
-                        a.collected_traffic_source,
-                        null) ignore nulls)
-        over(partition by a.user_key order by cast(a.event_timestamp/ 1000000 as int64)
-        range between ${constants.AQUISITION_EVENTS_LOOKBACK_WINDOW} preceding and 1 preceding
-        ),
-        a.collected_traffic_source
+    if(coalesce(nullif(a.collected_traffic_source.source, '(direct)'), nullif(a.collected_traffic_source.medium, '(none)'), nullif(a.collected_traffic_source.campaign, '(direct)')) is null,
+    (
+    select
+      array_agg(b.collected_traffic_source)
+    from
+      int_event as b
+    where
+      b.user_key = a.user_key
+      and cast(b.event_timestamp / 1000000 as int64) >= (cast(a.event_timestamp / 1000000 as int64) -
+        case
+          when a.event_name in ('first_visit', 'first_open') then ${constants.AQUISITION_EVENTS_LOOKBACK_WINDOW}
+        else
+        ${constants.ALL_EVENTS_LOOKBACK_WINDOW}
+      end
         )
-    else
-        if(coalesce(a.collected_traffic_source.source, a.collected_traffic_source.medium, a.collected_traffic_source.campaign) is null,
-        last_value(if(coalesce(a.collected_traffic_source.source, a.collected_traffic_source.medium, a.collected_traffic_source.campaign) is not null,
-                        a.collected_traffic_source,
-                        null) ignore nulls)
-        over(partition by a.user_key order by cast(a.event_timestamp/ 1000000 as int64)
-        range between ${constants.ALL_EVENTS_LOOKBACK_WINDOW} preceding and 1 preceding
-        ),
-        a.collected_traffic_source
-        )
-    end as last_non_direct_traffic_source
+      and cast(b.event_timestamp / 1000000 as int64) <= cast(a.event_timestamp / 1000000 as int64)
+      and coalesce(nullif(b.collected_traffic_source.source, '(direct)'), nullif(b.collected_traffic_source.medium, '(none)'), nullif(b.collected_traffic_source.campaign, '(direct)')) is not null)[safe_offset(0)],
+      a.collected_traffic_source
+    ) as last_non_direct_traffic_source
   from
-    ${ref('int_event')} a
-)
-
+    int_event as a )
 select
-  *
-from final
+  * except(last_non_direct_traffic_source),
+  (select as struct
+    ifnull(last_non_direct_traffic_source.source, '(direct)') as source,
+    ifnull(last_non_direct_traffic_source.medium, '(none)') as medium,
+    ifnull(last_non_direct_traffic_source.campaign, '(direct)') as campaign
+  ) as last_non_direct_traffic_source
+from
+  final
