@@ -31,7 +31,7 @@ with session_first_last_source as (
         user_pseudo_id,
         --session first traffic source
         array_agg(
-            if(coalesce(collected_traffic_source.source, collected_traffic_source.medium, collected_traffic_source.campaign) is not null,
+            if(coalesce(nullif(collected_traffic_source.source, '(direct)'), nullif(collected_traffic_source.medium, '(none)'), nullif(collected_traffic_source.campaign, '(direct)')) is not null,
                 collected_traffic_source,
                 null
             )
@@ -42,7 +42,7 @@ with session_first_last_source as (
         ) [safe_offset(0)] as first_traffic_source,
         --session last non-direct traffic source within the session
         array_agg(
-                if(coalesce(collected_traffic_source.source, collected_traffic_source.medium, collected_traffic_source.campaign) is not null,
+                if(coalesce(nullif(collected_traffic_source.source, '(direct)'), nullif(collected_traffic_source.medium, '(none)'), nullif(collected_traffic_source.campaign, '(direct)')) is not null,
                     collected_traffic_source,
                     null
             ) ignore nulls
@@ -70,8 +70,8 @@ with session_first_last_source as (
     b.session_engaged,
     b.engagement_time_seconds,
     b.user_first_visit_datetime,
-    if(coalesce(a.first_traffic_source.source, a.first_traffic_source.medium, a.first_traffic_source.campaign) is null,
-      last_value(if(coalesce(a.last_non_null_traffic_source.source, a.last_non_null_traffic_source.medium, a.last_non_null_traffic_source.campaign) is not null,
+    if(coalesce(nullif(a.first_traffic_source.source, '(direct)'), nullif(a.first_traffic_source.medium, '(none)'), nullif(a.first_traffic_source.campaign, '(direct)')) is null,
+      last_value(if(coalesce(nullif(a.last_non_null_traffic_source.source, '(direct)'), nullif(a.last_non_null_traffic_source.medium, '(none)'), nullif(a.last_non_null_traffic_source.campaign, '(direct)')) is not null,
                     a.last_non_null_traffic_source,
                     null) ignore nulls)
       over(partition by a.user_key order by a.ga_session_id
