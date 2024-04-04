@@ -39,8 +39,8 @@ pre_operations {
 with staging as (
     select
         stg_events.* except(event_traffic_source, collected_traffic_source, event_timestamp, event_datetime),
-        ${helpers.adjust_campaign_timestamp('stg_events')} as event_timestamp,
-        datetime(timestamp_seconds(cast(${helpers.adjust_campaign_timestamp('stg_events')} / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
+        ${helpers.adjustCampaignTimestamp('stg_events')} as event_timestamp,
+        datetime(timestamp_seconds(cast(${helpers.adjustCampaignTimestamp('stg_events')} / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
         to_base64(md5(concat(user_pseudo_id, stream_id))) as user_key,
         to_base64(md5(concat(user_pseudo_id, stream_id, ga_session_id))) as ga_session_key,
         --the below is to deal with misattribution of cpc to organic
@@ -58,9 +58,9 @@ with staging as (
         (
         select
         as struct
-            ${helpers.update_paid_search_traffic_source('collected_traffic_source', 'manual_source', 'stg_events', null)} as source,
-            ${helpers.update_paid_search_traffic_source('collected_traffic_source', 'manual_medium', 'stg_events', null)} as medium,
-            ${helpers.update_paid_search_traffic_source('collected_traffic_source', 'manual_campaign_name', 'stg_events', when(constants.GADS_GET_DATA, 'int_ads_click_campaign.campaign_name', null))} as campaign,
+            ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_source', 'stg_events', null)} as source,
+            ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_medium', 'stg_events', null)} as medium,
+            ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_campaign_name', 'stg_events', when(constants.GADS_GET_DATA, 'int_ads_click_campaign.campaign_name', null))} as campaign,
             collected_traffic_source.manual_campaign_id as manual_campaign_id,
             collected_traffic_source.manual_campaign_name as manual_campaign_name,
             collected_traffic_source.manual_source as manual_source,

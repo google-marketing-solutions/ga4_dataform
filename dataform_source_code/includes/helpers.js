@@ -18,28 +18,28 @@
  * Unnests a column in a SQL query.
 
  * Args:
- *   column_to_unnest: The column to unnest.
- *   key_to_extract: The key to extract from the unnested column.
- *   value_type: The type of the value to extract.
+ *   columnToUnnest: The column to unnest.
+ *   keyToExtract: The key to extract from the unnested column.
+ *   valueType: The type of the value to extract.
 
  * Returns:
  *   A SQL query that unnests the column.
  */
-function unnest_column(column_to_unnest, key_to_extract, value_type="string_value") {
-    return `(select value.${value_type} from unnest(${column_to_unnest}) where key = '${key_to_extract}')`;
+function unnestColumn(columnToUnnest, keyToExtract, valueType="string_value") {
+    return `(select value.${valueType} from unnest(${columnToUnnest}) where key = '${keyToExtract}')`;
 };
 
 /**
  * Extracts the main URL from a page path with parameters.
 
  * Args:
- *   input_string: The string to extract the URL from.
+ *   inputString: The string to extract the URL from.
 
  * Returns:
  *   A SQL query that extracts the URL from the string.
  */
-function extract_url(input_string) {
-    return `regexp_extract(${input_string}, '(?:http[s]?://)?(?:www\\\\.)?(.*?)(?:(?:/|:)(?:.)*|$)')`;
+function extractUrl(inputString) {
+    return `regexp_extract(${inputString}, '(?:http[s]?://)?(?:www\\\\.)?(.*?)(?:(?:/|:)(?:.)*|$)')`;
 };
 
 /**
@@ -49,13 +49,13 @@ function extract_url(input_string) {
  * Args:
  *   source: The source of the channel.
  *   medium: The medium of the channel.
- *   source_category: The source category of the channel.
+ *   sourceCategory: The source category of the channel.
 
  * Returns:
  *   A string representing the channel group.
  */
 
-function group_channels(source, medium, source_category) {
+function groupChannels(source, medium, sourceCategory) {
     return `case
                 when
                     (
@@ -68,22 +68,22 @@ function group_channels(source, medium, source_category) {
                     )
                     then 'Direct'
                 when
-                    ${source_category} = 'SOURCE_CATEGORY_SHOPPING'
+                    ${sourceCategory} = 'SOURCE_CATEGORY_SHOPPING'
                     and regexp_contains(${medium},r"^(.*cp.*|ppc|retargeting|paid.*)$")
                     then 'Paid Shopping'
                 when
-                    ${source_category} = 'SOURCE_CATEGORY_SEARCH'
+                    ${sourceCategory} = 'SOURCE_CATEGORY_SEARCH'
                     and regexp_contains(${medium}, r"^(.*cp.*|ppc|retargeting|paid.*)$")
                     then 'Paid Search'
                 when
                     (
                     regexp_contains(${source}, r"^(facebook|instagram|pinterest|reddit|twitter|linkedin)")
-                    or ${source_category} = 'SOURCE_CATEGORY_SOCIAL'
+                    or ${sourceCategory} = 'SOURCE_CATEGORY_SOCIAL'
                     )
                     and regexp_contains(${medium}, r"^(.*cp.*|ppc|retargeting|paid.*)$")
                     then 'Paid Social'
                 when
-                    (${source_category} = 'SOURCE_CATEGORY_VIDEO' AND regexp_contains(${medium},r"^(.*cp.*|ppc|retargeting|paid.*)$"))
+                    (${sourceCategory} = 'SOURCE_CATEGORY_VIDEO' AND regexp_contains(${medium},r"^(.*cp.*|ppc|retargeting|paid.*)$"))
                     or ${source} = 'dv360_video'
                     then 'Paid Video'
                 when
@@ -94,20 +94,20 @@ function group_channels(source, medium, source_category) {
                     regexp_contains(${medium}, r"^(.*cp.*|ppc|retargeting|paid.*)$")
                     then 'Paid Other'
                 when
-                    ${source_category} = 'SOURCE_CATEGORY_SHOPPING'
+                    ${sourceCategory} = 'SOURCE_CATEGORY_SHOPPING'
                     then 'Organic Shopping'
                 when
                     regexp_contains(${source}, r"^(facebook|instagram|pinterest|reddit|twitter|linkedin)")
                     or ${medium} in ("social","social-network","social-media","sm","social network","social media")
-                    or ${source_category} = 'SOURCE_CATEGORY_SOCIAL'
+                    or ${sourceCategory} = 'SOURCE_CATEGORY_SOCIAL'
                     then 'Organic Social'
                 when
-                    ${source_category} = 'SOURCE_CATEGORY_VIDEO'
+                    ${sourceCategory} = 'SOURCE_CATEGORY_VIDEO'
                     or regexp_contains(${medium}, r"^(.*video.*)$")
                     then 'Organic Video'
                 when
                     ${medium} = 'organic'
-                    or ${source_category} = 'SOURCE_CATEGORY_SEARCH'
+                    or ${sourceCategory} = 'SOURCE_CATEGORY_SEARCH'
                     then 'Organic Search'
                 when
                     ${medium} in ("referral", "app", "link")
@@ -140,46 +140,46 @@ function group_channels(source, medium, source_category) {
 
  * Args:
  *   struct: The name of the struct to update.
- *   struct_column: The name of the struct column to update.
- *   table_alias: The alias of the table whose fields are being updated.
- *   gads_campaign_name: The name of the google ads campaign retrieved from the gads exports.
+ *   structColumn: The name of the struct column to update.
+ *   tableAlias: The alias of the table whose fields are being updated.
+ *   gadsCampaignName: The name of the google ads campaign retrieved from the gads exports.
 
  * Returns:
- *   A SQL expression that updates the struct_column
+ *   A SQL expression that updates the structColumn
  */
-function update_paid_search_traffic_source(struct, struct_column, table_alias, gads_campaign_name) {
-    let traffic_source = {
-        cpc_value: '',
-        cpm_value: ''
+function updatePaidSearchTrafficSource(struct, structColumn, tableAlias, gadsCampaignName) {
+    let trafficSource = {
+        cpcValue: '',
+        cpmValue: ''
     };
-    let user_traffic_source_column = '';
-    if (struct_column === 'manual_source') {
-        traffic_source.cpc_value = 'google';
-        traffic_source.cpm_value = 'dbm';
-        user_traffic_source_column = 'source';
-    } else if (struct_column === 'manual_medium') {
-        traffic_source.cpc_value = 'cpc';
-        traffic_source.cpm_value = 'cpm';
-        user_traffic_source_column = 'medium';
-    } else if (struct_column === 'manual_campaign_name') {
-        traffic_source.cpc_value = '(cpc)';
-        traffic_source.cpm_value = '(cpm)';
-        user_traffic_source_column = 'campaign';
+    let userTrafficSourceColumn = '';
+    if (structColumn === 'manual_source') {
+        trafficSource.cpcValue = 'google';
+        trafficSource.cpmValue = 'dbm';
+        userTrafficSourceColumn = 'source';
+    } else if (structColumn === 'manual_medium') {
+        trafficSource.cpcValue = 'cpc';
+        trafficSource.cpmValue = 'cpm';
+        userTrafficSourceColumn = 'medium';
+    } else if (structColumn === 'manual_campaign_name') {
+        trafficSource.cpcValue = '(cpc)';
+        trafficSource.cpmValue = '(cpm)';
+        userTrafficSourceColumn = 'campaign';
     }
 
-    return `if(${table_alias}.event_name in ('first_visit', 'first_open') and ${table_alias}.${struct}.${struct_column} is null,
-                ${table_alias}.traffic_source.${user_traffic_source_column},
-                if(${table_alias}.event_traffic_source.gclid is not null or ${table_alias}.page_location like '%gbraid%' or ${table_alias}.page_location like '%wbraid%',
-                    if ('${struct_column}' in ('manual_campaign_name'),
-                        if (${gads_campaign_name} is null,
-                            '${traffic_source.cpc_value}',
-                             ${gads_campaign_name}
+    return `if(${tableAlias}.event_name in ('first_visit', 'first_open') and ${tableAlias}.${struct}.${structColumn} is null,
+                ${tableAlias}.traffic_source.${userTrafficSourceColumn},
+                if(${tableAlias}.event_traffic_source.gclid is not null or ${tableAlias}.page_location like '%gbraid%' or ${tableAlias}.page_location like '%wbraid%',
+                    if ('${structColumn}' in ('manual_campaign_name'),
+                        if (${gadsCampaignName} is null,
+                            '${trafficSource.cpcValue}',
+                             ${gadsCampaignName}
                         ),
-                        '${traffic_source.cpc_value}'
+                        '${trafficSource.cpcValue}'
                     ),
-                    if(${table_alias}.event_traffic_source.dclid is not null and ${table_alias}.event_traffic_source.gclid is null,
-                            '${traffic_source.cpm_value}',
-                            ${table_alias}.${struct}.${struct_column}
+                    if(${tableAlias}.event_traffic_source.dclid is not null and ${tableAlias}.event_traffic_source.gclid is null,
+                            '${trafficSource.cpmValue}',
+                            ${tableAlias}.${struct}.${structColumn}
                     )
                 )
             )`;
@@ -191,19 +191,19 @@ function update_paid_search_traffic_source(struct, struct_column, table_alias, g
  * while preserving campaign event orders
 
  * Args:
- *   table_alias: The alias of the table whose fields are being updated.
+ *   tableAlias: The alias of the table whose fields are being updated.
 
  * Returns:
  *   A SQL expression with the backdated timestamps
  */
-function adjust_campaign_timestamp(table_alias){
-    let microseconds_in_second = 1000000;
-    return `if(${table_alias}.event_name in ('firebase_campaign', 'campaign_details'),
-                if((${table_alias}.event_timestamp/${microseconds_in_second}) <= (${table_alias}.ga_session_id + 4),
-                    (${table_alias}.ga_session_id * ${microseconds_in_second}) - ((4 * ${microseconds_in_second}) - (${table_alias}.event_timestamp - (${table_alias}.ga_session_id * ${microseconds_in_second}))),
-                    ${table_alias}.event_timestamp
+function adjustCampaignTimestamp(tableAlias){
+    let microsecondsInSecond = 1000000;
+    return `if(${tableAlias}.event_name in ('firebase_campaign', 'campaign_details'),
+                if((${tableAlias}.event_timestamp/${microsecondsInSecond}) <= (${tableAlias}.ga_session_id + 4),
+                    (${tableAlias}.ga_session_id * ${microsecondsInSecond}) - ((4 * ${microsecondsInSecond}) - (${tableAlias}.event_timestamp - (${tableAlias}.ga_session_id * ${microsecondsInSecond}))),
+                    ${tableAlias}.event_timestamp
                 ),
-                ${table_alias}.event_timestamp
+                ${tableAlias}.event_timestamp
             )`
 }
 
@@ -212,19 +212,19 @@ function adjust_campaign_timestamp(table_alias){
  * Returns:
  *   A SQL expression that selects source categories
 */
-function select_source_categories(){
-    let select_statement = '';
+function selectSourceCategories(){
+    let selectStatement = '';
     let i = 0;
-    let { source_categories } = require("./source_categories.js");
-    let source_categories_length = Object.keys(source_categories).length;
-    for (row of source_categories) {
+    let { sourceCategories } = require("./source_categories.js");
+    let sourceCategoriesLength = Object.keys(sourceCategories).length;
+    for (row of sourceCategories) {
         i++;
-        select_statement = select_statement.concat(`select "` + row.source + `" as source, "`+  row.source_category + `" as source_category`);
-        if (i < source_categories_length) {
-            select_statement = select_statement.concat(` union distinct `)
+        selectStatement = selectStatement.concat(`select "` + row.source + `" as source, "`+  row.sourceCategory + `" as source_category`);
+        if (i < sourceCategoriesLength) {
+            selectStatement = selectStatement.concat(` union distinct `)
         }
     }
-    return select_statement;
+    return selectStatement;
 }
 
 /**
@@ -232,19 +232,19 @@ function select_source_categories(){
  * Returns:
  *   A SQL expression that selects custom events
 */
-function select_non_custom_events(){
-    let select_statement = '';
+function selectNonCustomEvents(){
+    let selectStatement = '';
     let i = 0;
-    let { non_custom_events } = require("./non_custom_events.js");
-    let non_custom_events_length = Object.keys(non_custom_events).length;
-    for (row of non_custom_events) {
+    let { nonCustomEvents } = require("./non_custom_events.js");
+    let nonCustomEventsLength = Object.keys(nonCustomEvents).length;
+    for (row of nonCustomEvents) {
         i++;
-        select_statement = select_statement.concat(`select "` + row.event_name + `" as event_name`);
-        if (i < non_custom_events_length) {
-            select_statement = select_statement.concat(` union distinct `)
+        selectStatement = selectStatement.concat(`select "` + row.eventName + `" as event_name`);
+        if (i < nonCustomEventsLength) {
+            selectStatement = selectStatement.concat(` union distinct `)
         }
     }
-    return select_statement;
+    return selectStatement;
 }
 
-module.exports = { unnest_column, extract_url, group_channels, update_paid_search_traffic_source, adjust_campaign_timestamp, select_source_categories, select_non_custom_events };
+module.exports = { unnestColumn, extractUrl, groupChannels, updatePaidSearchTrafficSource, adjustCampaignTimestamp, selectSourceCategories, selectNonCustomEvents };

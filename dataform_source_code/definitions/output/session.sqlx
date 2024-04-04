@@ -104,7 +104,7 @@ with session_first_last_source as (
         if(not t.has_session_start_event, '(not set)', ifnull(t.first_traffic_source.medium, '(none)')) as medium,
         if(not t.has_session_start_event, '(not set)', ifnull(t.first_traffic_source.campaign, '(direct)')) as campaign,
         if(not t.has_session_start_event, '(not set)', cf.source_category) as source_category,
-        if(not t.has_session_start_event, 'Unassigned', ${helpers.group_channels('t.first_traffic_source.source', 't.first_traffic_source.medium', 'cf.source_category')}) as channel_group
+        if(not t.has_session_start_event, 'Unassigned', ${helpers.groupChannels('t.first_traffic_source.source', 't.first_traffic_source.medium', 'cf.source_category')}) as channel_group
     ) as first_traffic_source,
     (
       select
@@ -113,7 +113,7 @@ with session_first_last_source as (
         if(not t.has_session_start_event, '(not set)', ifnull(t.last_non_direct_traffic_source.medium, '(none)')) as medium,
         if(not t.has_session_start_event, '(not set)', ifnull(t.last_non_direct_traffic_source.campaign, '(direct)')) as campaign,
         if(not t.has_session_start_event, '(not set)', cl.source_category) as source_category,
-        if(not t.has_session_start_event, 'Unassigned', ${helpers.group_channels('t.last_non_direct_traffic_source.source', 't.last_non_direct_traffic_source.medium', 'cl.source_category')}) as channel_group
+        if(not t.has_session_start_event, 'Unassigned', ${helpers.groupChannels('t.last_non_direct_traffic_source.source', 't.last_non_direct_traffic_source.medium', 'cl.source_category')}) as channel_group
     ) as last_non_direct_traffic_source,
   from get_last_non_direct_traffic_source t
     left join ${ref('stg_source_categories')} cf

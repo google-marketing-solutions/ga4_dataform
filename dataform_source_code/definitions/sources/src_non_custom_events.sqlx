@@ -21,4 +21,4 @@ config {
   description: "This table stores all automatically generated and recommended GA4 events. (Excludes custom events)"
 }
 
-${helpers.select_non_custom_events()}
+${helpers.selectNonCustomEvents()}

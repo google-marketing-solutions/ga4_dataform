@@ -78,25 +78,25 @@ with
       platform,
       ecommerce,
       items,
-      ${helpers.unnest_column('event_params', 'ga_session_id', 'int_value')} as ga_session_id,
-      ${helpers.unnest_column('event_params', 'page_location')} as page_location,
-      ${helpers.unnest_column('event_params', 'ga_session_number', 'int_value')} as ga_session_number,
-      ${helpers.unnest_column('event_params', 'engagement_time_msec', 'int_value')} as engagement_time_msec,
-      ${helpers.unnest_column('event_params', 'page_title')} as page_title,
-      ${helpers.unnest_column('event_params', 'page_referrer')} as page_referrer,
+      ${helpers.unnestColumn('event_params', 'ga_session_id', 'int_value')} as ga_session_id,
+      ${helpers.unnestColumn('event_params', 'page_location')} as page_location,
+      ${helpers.unnestColumn('event_params', 'ga_session_number', 'int_value')} as ga_session_number,
+      ${helpers.unnestColumn('event_params', 'engagement_time_msec', 'int_value')} as engagement_time_msec,
+      ${helpers.unnestColumn('event_params', 'page_title')} as page_title,
+      ${helpers.unnestColumn('event_params', 'page_referrer')} as page_referrer,
       (
       select
-        as struct lower(${helpers.unnest_column('event_params', 'source')}) as source,
-        lower(${helpers.unnest_column('event_params', 'medium')}) as medium,
-        lower(${helpers.unnest_column('event_params', 'campaign')}) as campaign,
-        lower(${helpers.unnest_column('event_params', 'content')}) as content,
-        lower(${helpers.unnest_column('event_params', 'term')}) as term,
-        ${helpers.unnest_column('event_params', 'gclid')} as gclid,
-        ${helpers.unnest_column('event_params', 'dclid')} as dclid
+        as struct lower(${helpers.unnestColumn('event_params', 'source')}) as source,
+        lower(${helpers.unnestColumn('event_params', 'medium')}) as medium,
+        lower(${helpers.unnestColumn('event_params', 'campaign')}) as campaign,
+        lower(${helpers.unnestColumn('event_params', 'content')}) as content,
+        lower(${helpers.unnestColumn('event_params', 'term')}) as term,
+        ${helpers.unnestColumn('event_params', 'gclid')} as gclid,
+        ${helpers.unnestColumn('event_params', 'dclid')} as dclid
       ) as event_traffic_source,
-      coalesce( (${helpers.unnest_column('event_params', 'session_engaged', 'int_value')}),
+      coalesce( (${helpers.unnestColumn('event_params', 'session_engaged', 'int_value')}),
                 (case
-                  when (${helpers.unnest_column('event_params', 'session_engaged')}) = "1" then 1
+                  when (${helpers.unnestColumn('event_params', 'session_engaged')}) = "1" then 1
                 end
           ) ) as session_engaged
     from

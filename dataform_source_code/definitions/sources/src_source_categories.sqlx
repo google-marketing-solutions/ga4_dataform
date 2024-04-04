@@ -21,4 +21,4 @@ config {
   description: "This table stores GA4 source category mappings as per https://support.google.com/analytics/answer/9756891?hl=en#list"
 }
 
-${helpers.select_source_categories()}
+${helpers.selectSourceCategories()}
