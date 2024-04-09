@@ -67,7 +67,7 @@ of the output dataset name as this will store the final output tables of the SQL
 
 Below is an example on the output table to help you get started!
 
-Retrieve each the number of sessions by source and medium:
+Retrieve the number of sessions by source and medium:
 >
     select
         last_non_direct_traffic_source.source as session_source,
