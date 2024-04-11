@@ -46,7 +46,7 @@ The dataform project files could be found under the `dataform_source_code/` repo
 
 Note: Please only choose one of the two deployment methods. Regardless of the method you pick, please proceed with the below instructions to run your Dataform project.
 
-### Run the Dataform data models (This instructions for this step are covered in the Cloud Shell deployment)
+### Run the Dataform data models (The instructions for this step are also covered in the Cloud Shell deployment)
 
 1. Navigate to "Dataform" on your Google Cloud project, and locate the new repository named ga4-dataform-timestamp. 
 
