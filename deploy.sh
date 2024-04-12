@@ -53,9 +53,11 @@ SERVICE_ACCOUNT_EMAIL=service-"$PROJECT_NUMBER"@gcp-sa-dataform.iam.gserviceacco
 gcloud projects add-iam-policy-binding --quiet "$PROJECT_ID" \
     --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" \
     --role "roles/bigquery.user" \
-    --no-user-output-enabled
+    --no-user-output-enabled \
+    --condition=None
 
 gcloud projects add-iam-policy-binding "$PROJECT_ID" \
     --member "serviceAccount:$SERVICE_ACCOUNT_EMAIL" \
     --role "roles/bigquery.dataViewer" \
-    --no-user-output-enabled
+    --no-user-output-enabled \
+    --condition=None
