@@ -36,7 +36,11 @@ In the future, additional data for GA4 traffic attribution might become natively
 
 ### Deploy via Cloud Shell
 
-[![Open in Cloud Shell](https://gstatic.com/cloudssh/images/open-btn.png)](https://ssh.cloud.google.com/cloudshell/open?cloudshell_git_repo=https://github.com/google-marketing-solutions/ga4_dataform&cloudshell_tutorial=tutorial.md)
+1. Activate Google Cloud Cloud Shell.
+2. Click on Open Editor, and then from the menu, select Terminal > New Terminal.
+3. Clone this repository using `git clone https://github.com/google-marketing-solutions/ga4_dataform.git`
+4. Run this command to navigate to the ga4_dataform directory: `cd ga4_dataform`
+5. Run this command to launch the interactive tutorial: `teachme tutorial.md`
 
 ### Alternative deployment method via connecting to a third-party Git repository (Optional)
 
