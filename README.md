@@ -41,6 +41,7 @@ In the future, additional data for GA4 traffic attribution might become natively
 3. Clone this repository using `git clone https://github.com/google-marketing-solutions/ga4_dataform.git`
 4. Run this command to navigate to the ga4_dataform directory: `cd ga4_dataform`
 5. Run this command to launch the interactive tutorial: `teachme tutorial.md`
+6. Follow the on-screen instructions in the interactive Cloud Shell tutorial on the right of the screen.
 
 ### Alternative deployment method via connecting to a third-party Git repository (Optional)
 
