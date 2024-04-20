@@ -23,7 +23,7 @@ The below features are currently available:
 4. Providing an example of how a custom session attribution logic could be implemented by computing the last non-direct traffic source for the session.
 5. Gclid widening by mapping the GA4 gclid to the Google Ads Data Transfer click-view gclid (Optional setting)
 6. Event level last-click attribution.
-7. Mapping the session traffic sources to [source category mappings](https://support.google.com/analytics/answer/9756891?hl=en#list").
+7. Mapping the session traffic sources to [source category mappings](https://support.google.com/analytics/answer/9756891?hl=en#list).
 8. Mapping the session traffic sources to [Default Channel Groups](https://support.google.com/analytics/answer/9756891?hl=en).
 
 The project also provides helper functions to unnest BigQuery event_params, extract page urls, and apply default channel groupings (GA4 groupings might get updated.)
