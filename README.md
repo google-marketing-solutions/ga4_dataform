@@ -34,20 +34,36 @@ In the future, additional data for GA4 traffic attribution might become natively
 
 ## Get Started
 
-### Deploy via Cloud Shell
+### Deploy by connecting to a third-party Git repository
 
+#### Prerequisites
+
+In order to deploy GA4 Dataform, you need:
+- Google Cloud Project with billing enabled.
+- A BigQuery table with GA4 data exports.
+
+The following APIs must be enabled.
+
+- Workflows API
+- Cloud Scheduler API
+- BigQuery API
+- Dataform API
+
+Deploy the solution by connecting your Dataform to a third-party Git repository by following this [guide](https://cloud.google.com/dataform/docs/connect-repository).
+
+The dataform project files could be found under the `dataform_source_code/` repository, so you could only upload this folder to your Git repository. You might want to keep your repository private.
+
+Once the solution is deployed to Dataform, update the variables in your `includes/constants.js file`.
+
+### (Alternative Method) Deploy via Cloud Shell
+
+You could also automatically deploy the solution using the Cloud Shell deployment method. Using the Cloud Shell deploy means that you would need to re-deploy to a new Dataform repository when there are updates to the solution. This method is only intended for testing purposes.
 1. Activate Google Cloud Cloud Shell.
 2. Click on Open Editor, and then from the menu, select Terminal > New Terminal.
 3. Clone this repository using `git clone https://github.com/google-marketing-solutions/ga4_dataform.git`
 4. Run this command to navigate to the ga4_dataform directory: `cd ga4_dataform`
 5. Run this command to launch the interactive tutorial: `teachme tutorial.md`
 6. Follow the on-screen instructions in the interactive Cloud Shell tutorial on the right of the screen.
-
-### Alternative deployment method via connecting to a third-party Git repository (Optional)
-
-An alternative way to deploy the solution is to connect your Dataform to a third-party Git repository by following this [guide](https://cloud.google.com/dataform/docs/connect-repository). 
-
-The dataform project files could be found under the `dataform_source_code/` repository. You might want to keep your repository private.
 
 Note: Please only choose one of the two deployment methods. Regardless of the method you pick, please proceed with the below instructions to run your Dataform project.
 
