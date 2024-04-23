@@ -1,6 +1,0 @@
-{
-  "name": "ga4-bq-sessionization",
-  "dependencies": {
-    "@dataform/core": "2.4.2"
-  }
-}

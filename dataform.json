@@ -1,8 +1,0 @@
-{
-  "defaultSchema": "ga4_dataform_staging",
-  "assertionSchema": "ga4_dataform_assertions",
-  "warehouse": "bigquery",
-  "defaultDatabase": "your-project-id",
-  "defaultLocation": "US"
-}
-    

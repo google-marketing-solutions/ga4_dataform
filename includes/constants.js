@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-const SOURCE_PROJECT = "" /* specify a value here only in case your source data sits in a project other than the default defined in dataform.json defaultDatabase variable. You would need to grant the Dataform service account BigQuery Data Viewer and BigQuery Job User access to the dataset. */
+const SOURCE_PROJECT = "" /* specify a value here only in case your source data sits in a project other than the default defined in workflow_settings.yaml defaultDatabase variable. You would need to grant the Dataform service account BigQuery Data Viewer and BigQuery Job User access to the dataset. */
 const SOURCE_DATASET = "ga4_source"; /* the database containing the GA4 BigQuery exports */
 const REPORTING_TIME_ZONE = "America/Los_Angeles"; /* replace with your property reporting time zone, this will update the timestamp columns from UTC to your GA4 property timezone (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) */
 const SEEDS_DATASET = "ga4_dataform_seed"; /* the database containing the GA4 BigQuery data mapping seeds such as source categories */

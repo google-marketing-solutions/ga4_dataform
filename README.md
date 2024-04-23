@@ -49,9 +49,11 @@ The following APIs must be enabled.
 - Dataform API
 - Workflows API
 
+#### Deployment
+
 Deploy the solution by connecting your Dataform to a third-party Git repository by following this [guide](https://cloud.google.com/dataform/docs/connect-repository).
 
-Once the solution is deployed to Dataform, update the variables in your `includes/constants.js file`. Also update the `defaultLocation` variable in the `dataform.json` file.
+Once the solution is deployed to Dataform, update the variables in your `includes/constants.js file`. Also update the `defaultProject` and `defaultLocation` variable in the `workflow_settings.yaml` file. The `defaultLocation` represents the default BigQuery location to use.
 
 ### Run the Dataform data models
 

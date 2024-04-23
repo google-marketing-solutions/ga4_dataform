@@ -1,0 +1,5 @@
+defaultProject: your-project-id
+defaultLocation: EU
+defaultDataset: ga4_dataform
+defaultAssertionDataset: ga4_dataform_assertions
+dataformCoreVersion: 3.0.0-beta.4    
