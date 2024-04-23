@@ -57,7 +57,10 @@ Once the solution is deployed to Dataform, update the variables in your `include
 
 ### (Alternative Method) Deploy via Cloud Shell
 
-You could also automatically deploy the solution using the Cloud Shell deployment method. Using the Cloud Shell deploy means that you would need to re-deploy to a new Dataform repository when there are updates to the solution. This method is only intended for testing purposes.
+This method is only intended for testing purposes.
+
+With this method, you could deploy the solution using a Cloud Shell step by step tutorial. When using the Cloud Shell deployment method, you would need to re-deploy to a new Dataform repository when there are updates to the solution. In addition, your Dataform runs cannot be scheduled using this method.
+
 1. Activate Google Cloud Cloud Shell.
 2. Click on Open Editor, and then from the menu, select Terminal > New Terminal.
 3. Clone this repository using `git clone https://github.com/google-marketing-solutions/ga4_dataform.git`
