@@ -53,7 +53,7 @@ The following APIs must be enabled.
 
 Deploy the solution by connecting your Dataform to a third-party Git repository by following this [guide](https://cloud.google.com/dataform/docs/connect-repository).
 
-1. Once the the link to GitHub is working, click on 'CREATE DEVELOPMENT WORKSPACE' under 'DEVELOPMENT WORKSPACES'.
+1. Once the the link to your third-party Git repository is working, click on 'CREATE DEVELOPMENT WORKSPACE' under 'DEVELOPMENT WORKSPACES'.
 2. Update the variables in your `includes/constants.js file`.
 3. Update the `defaultProject` and `defaultLocation` variable in the `workflow_settings.yaml` file. The `defaultLocation` represents the default BigQuery location to use.
 4. While inside the `workflow_settings.yaml` file, click on 'INSTALL PACKAGES'.
