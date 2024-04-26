@@ -17,7 +17,7 @@ Note: The solution only supports web properties, and is not yet tested on app pr
 
 The below features are currently available:
 
-1. Building a unique `event_key`, `user_key`, and `ga_session_key`.
+1. Building a unique `user_key` and `ga_session_key`.
 2. Providing as output a digestible **session** table, **user_transaction_daily** table, **event** table, etc...
 3. Determining the channels that initiated the session (based on last click) and attributing those channels to the first session traffic sources.
 4. Providing an example of how a custom session attribution logic could be implemented by computing the last non-direct traffic source for the session.
