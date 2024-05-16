@@ -30,7 +30,18 @@ pre_operations {
       `select max(event_date) -3 from ${self()}`,
       `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
     }
-  )
+  );
+  declare is_active_user bool default null; --to avoid errors on old tables where this field didn't exist
+
+  declare collected_traffic_source struct<manual_campaign_id array<string>,
+                                        manual_campaign_name array<string>,
+                                        manual_source array<string>,
+                                        manual_medium array<string>,
+                                        manual_term array<string>,
+                                        manual_content array<string>,
+                                        gclid array<string>,
+                                        dclid array<string>,
+                                        srsltid array<string>> default null; --to avoid errors on old tables where this field didn't exist
   ---
   ${when(incremental(),
     `delete from ${self()} where event_date >= event_date_checkpoint`)
