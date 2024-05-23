@@ -1,0 +1,111 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+config {
+    type: "table",
+    schema: constants.OUTPUT_DATASET,
+    description: "All events connected to applications to use in analysis or in looker reports",
+    tags: [""],
+    disabled: true /* enable model when needed */
+}
+
+WITH 
+  applications AS (
+  SELECT
+    CONCAT(user_pseudo_id,ga_session_id) AS session_id,
+    event_name,
+    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'step') AS step,
+    CASE
+    WHEN REGEXP_CONTAINS(event_name, '_submit') THEN IFNULL((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text'), 'Application Submit') 
+    WHEN REGEXP_CONTAINS(event_name, '_sign') THEN IFNULL((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text'), 'Application Sign')
+    WHEN REGEXP_CONTAINS(event_name, '_start') THEN IFNULL((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text'), 'Application Start')
+    WHEN (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text') = 'start' THEN 'Application Start'
+    ELSE (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text') END as step_text,
+    CASE
+    WHEN REGEXP_CONTAINS(event_name, 'mortgage_application_submit') THEN (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'status') 
+    WHEN event_name = 'blanco_application_submit' THEN (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'state')
+    ELSE null END AS status,
+    CASE
+       WHEN REGEXP_CONTAINS(event_name, 'transfer|new|commitment|loan_promise|raise') OR REGEXP_CONTAINS(page_location, '\\/lana\\/bolan') OR REGEXP_CONTAINS(page_location, '\\/lana\\/hemnetkalkyl') THEN "Bolån"
+       WHEN REGEXP_CONTAINS(event_name, 'blanco') THEN "Privatlån"
+       END AS product,
+    CASE
+       WHEN REGEXP_CONTAINS(event_name, 'transfer') OR REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(flytta\\-bolan)(\\/)?(\\?.*)?$') THEN 'Flytta'
+       WHEN REGEXP_CONTAINS(event_name, 'new') OR REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(bolaneansokan)(\\/)?(\\?.*)?$') THEN 'Nytt'
+       WHEN REGEXP_CONTAINS(event_name, 'commitment|loan_promise') OR REGEXP_CONTAINS(page_location, '\\/lana\\/(hemnetkalkyl|bolan\\/lanelofte|bolan\\/hur\\-mycket\\-far\\-jag\\-lana)(\\/)?(\\?.*)?$') THEN 'Lånelöfte'
+       WHEN REGEXP_CONTAINS(event_name, 'raise') OR REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(utoka\\-bolan)(\\/)?(\\?.*)?$') THEN 'Utöka'
+       WHEN REGEXP_CONTAINS(event_name, 'blanco') THEN (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'loan_purpose')
+       END AS type,
+    CASE 
+    WHEN REGEXP_CONTAINS(event_name, '_submit') THEN SUM(CAST((SELECT value.int_value FROM UNNEST (event_params) WHERE key = 'value') AS INT64)) ELSE null END AS event_value,
+    page_location
+  from
+    ${ref('event')}
+  where REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
+  --OR event_name = "blanco_application_start"
+  --OR event_name = "blanco_application_nav"
+  --OR event_name = "blanco_application_submit"
+  OR event_name = 'page_view'
+  group by
+    session_id,
+    event_name,
+    step,
+    step_text,
+    status,
+    type,
+    page_location
+),
+
+sessions AS (
+    SELECT
+    session_start_date,
+    CONCAT(user_pseudo_id,ga_session_id) AS session_id,
+    CONCAT(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) AS source_medium
+  from
+    ${ref('session')}
+  group by
+    session_start_date,
+    session_id,
+    source_medium
+)
+
+SELECT
+  s.session_id,
+  product,
+  type,
+  event_name,
+  status,
+  SUM(event_value) AS event_value,
+  CASE 
+  WHEN event_name = 'blanco_application_submit' THEN 'Application Submit'
+  WHEN step IS NOT NULL and step_text IS NOT NULL THEN CONCAT('Steg ', step, ' - ', step_text) 
+  ELSE step_text END AS step,
+  REGEXP_EXTRACT(page_location, r'[^/]+//[^/]+(/[^?]*)') AS page_location,
+  source_medium,
+  COUNT(DISTINCT s.session_id) AS sessions
+from
+  sessions s
+LEFT JOIN applications a ON s.session_id = a.session_id
+  --WHERE s.session_id = "AeqZxP+sust4pgYDMIETFIQENYKnmgILsitllJXm9no=.17161311591716131158"
+GROUP BY 
+  session_id,
+  product,
+  type,
+  event_name,
+  status,
+  step,
+  page_location,
+  source_medium
