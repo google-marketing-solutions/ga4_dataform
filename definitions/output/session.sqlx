@@ -25,10 +25,14 @@ config {
 
 with session_first_last_source as (
     select
+        session_id,
         user_key,
         ga_session_key,
         ga_session_id,
         user_pseudo_id,
+        STRING_AGG(REGEXP_REPLACE(page_location, '\\?.*', '') ORDER BY event_timestamp) as pages_in_session,
+        ARRAY_AGG(REGEXP_REPLACE(page_location, '\\?.*', '') IGNORE NULLS ORDER BY event_timestamp LIMIT 1)[SAFE_OFFSET(0)] as landing_page,
+        MAX(IF(event_name = "login_success", true, false)) as logged_in, 
         --session first traffic source
         array_agg(
             if(coalesce(nullif(collected_traffic_source.source, '(direct)'), nullif(collected_traffic_source.medium, '(none)'), nullif(collected_traffic_source.campaign, '(direct)')) is not null,
@@ -55,13 +59,14 @@ with session_first_last_source as (
     where ga_session_key is not null
     and event_name not in ('session_start') --this condition could be commented/removed if looking at data post November 2, 2023 when it started being populated.
     group by
+        session_id,
         user_key,
         ga_session_key,
         ga_session_id,
         user_pseudo_id
-)
+), 
 
-, get_last_non_direct_traffic_source as (
+  get_last_non_direct_traffic_source as (
   select
     a.*,
     b.session_start_datetime,
@@ -84,10 +89,14 @@ with session_first_last_source as (
     join ${ref('int_session')} b
     on a.user_key = b.user_key
     and a.ga_session_key = b.ga_session_key
-)
+), 
 
-, add_channel_group as (
+  add_channel_group as (
   select
+    t.session_id,
+    t.pages_in_session,
+    t.landing_page,
+    t.logged_in,
     t.user_key,
     t.ga_session_key,
     t.ga_session_id,
