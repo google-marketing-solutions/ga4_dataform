@@ -16,7 +16,7 @@
 
 config {
     type: "table",
-    schema: constants.OUTPUT_DATASET,
+    schema: constants.RESULTS_DATASET,
     description: "All events connected to applications to use in analysis or in looker reports",
     tags: [""],
     disabled: false /* enable model when needed */
