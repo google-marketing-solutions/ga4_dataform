@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-const SOURCE_PROJECT = "" /* specify a value here only in case your source data sits in a project other than the default defined in workflow_settings.yaml defaultDatabase variable. You would need to grant the Dataform service account BigQuery Data Viewer and BigQuery Job User access to the dataset. */
-const SOURCE_DATASET = "ga4_source"; /* the database containing the GA4 BigQuery exports */
-const REPORTING_TIME_ZONE = "America/Los_Angeles"; /* replace with your property reporting time zone, this will update the timestamp columns from UTC to your GA4 property timezone (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) */
+const SOURCE_PROJECT = "ica-banken-276906" /* specify a value here only in case your source data sits in a project other than the default defined in workflow_settings.yaml defaultDatabase variable. You would need to grant the Dataform service account BigQuery Data Viewer and BigQuery Job User access to the dataset. */
+const SOURCE_DATASET = "analytics_264548651"; /* the database containing the GA4 BigQuery exports */
+const REPORTING_TIME_ZONE = "Europe/Stockholm"; /* replace with your property reporting time zone, this will update the timestamp columns from UTC to your GA4 property timezone (https://en.wikipedia.org/wiki/List_of_tz_database_time_zones) */
 const SEEDS_DATASET = "ga4_dataform_seed"; /* the database containing the GA4 BigQuery data mapping seeds such as source categories */
 const STAGING_DATASET = "ga4_dataform_staging";
 const INTERMEDIATE_DATASET = "ga4_dataform_intermediate";
 const OUTPUT_DATASET = "ga4_dataform_output";
-const START_DATE = 20230820; /* data will be pulled starting this date */
+const START_DATE = 20240520; /* data will be pulled starting this date */
 const ALL_EVENTS_LOOKBACK_WINDOW = 7776000; /* number of lookback days in seconds when looking at last non-direct session source and non-acquisition conversion events, default is 90 days (86400 seconds in a day)*/
 const AQUISITION_EVENTS_LOOKBACK_WINDOW = 2592000; /* number of lookback days in seconds when looking at acquisition conversion events (first_open and first_visit), default is 30 days (86400 seconds in a day)*/
 
