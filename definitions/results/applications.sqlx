@@ -22,43 +22,43 @@ config {
     disabled: false /* enable model when needed */
 }
 
-WITH 
-  applications AS (
-  SELECT
-    CONCAT(user_pseudo_id,ga_session_id) AS session_id,
+with applications as (
+  select
+    session_id,
     event_name,
-    (SELECT value.int_value FROM UNNEST(event_params) WHERE key = 'step') AS step,
-    CASE
-    WHEN REGEXP_CONTAINS(event_name, '_submit') THEN IFNULL((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text'), 'Application Submit') 
-    WHEN REGEXP_CONTAINS(event_name, '_sign') THEN IFNULL((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text'), 'Application Sign')
-    WHEN REGEXP_CONTAINS(event_name, '_start') THEN IFNULL((SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text'), 'Application Start')
-    WHEN (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text') = 'start' THEN 'Application Start'
-    ELSE (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'step_text') END as step_text,
-    CASE
-    WHEN REGEXP_CONTAINS(event_name, 'mortgage_application_submit') THEN (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'status') 
-    WHEN event_name = 'blanco_application_submit' THEN (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'state')
-    ELSE null END AS status,
-    CASE
-       WHEN REGEXP_CONTAINS(event_name, 'transfer|new|commitment|loan_promise|raise') OR REGEXP_CONTAINS(page_location, '\\/lana\\/bolan') OR REGEXP_CONTAINS(page_location, '\\/lana\\/hemnetkalkyl') THEN "Bolån"
-       WHEN REGEXP_CONTAINS(event_name, 'blanco') THEN "Privatlån"
-       END AS product,
-    CASE
-       WHEN REGEXP_CONTAINS(event_name, 'transfer') OR REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(flytta\\-bolan)(\\/)?(\\?.*)?$') THEN 'Flytta'
-       WHEN REGEXP_CONTAINS(event_name, 'new') OR REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(bolaneansokan)(\\/)?(\\?.*)?$') THEN 'Nytt'
-       WHEN REGEXP_CONTAINS(event_name, 'commitment|loan_promise') OR REGEXP_CONTAINS(page_location, '\\/lana\\/(hemnetkalkyl|bolan\\/lanelofte|bolan\\/hur\\-mycket\\-far\\-jag\\-lana)(\\/)?(\\?.*)?$') THEN 'Lånelöfte'
-       WHEN REGEXP_CONTAINS(event_name, 'raise') OR REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(utoka\\-bolan)(\\/)?(\\?.*)?$') THEN 'Utöka'
-       WHEN REGEXP_CONTAINS(event_name, 'blanco') THEN (SELECT value.string_value FROM UNNEST(event_params) WHERE key = 'loan_purpose')
-       END AS type,
-    CASE 
-    WHEN REGEXP_CONTAINS(event_name, '_submit') THEN SUM(CAST((SELECT value.int_value FROM UNNEST (event_params) WHERE key = 'value') AS INT64)) ELSE null END AS event_value,
+    step,
+    case
+      when REGEXP_CONTAINS(event_name, '_submit') then IFNULL(step_text, 'Application Submit') 
+      when REGEXP_CONTAINS(event_name, '_sign') then IFNULL(step_text, 'Application Sign')
+      when REGEXP_CONTAINS(event_name, '_start') then IFNULL(step_text, 'Application Start')
+      when step_text = 'start' then 'Application Start'
+      else step_text end as step_text,
+    case
+      when REGEXP_CONTAINS(event_name, 'mortgage_application_submit') then status
+      when event_name = 'blanco_application_submit' then state
+      else null end AS status,
+    case
+       when REGEXP_CONTAINS(event_name, 'transfer|new|commitment|loan_promise|raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan') or REGEXP_CONTAINS(page_location, '\\/lana\\/hemnetkalkyl') then "Bolån"
+       when REGEXP_CONTAINS(event_name, 'blanco') or REGEXP_CONTAINS(page_location, '\\/lana\\/privatlan') then "Privatlån"
+       end AS product,
+    case
+       when REGEXP_CONTAINS(event_name, 'transfer') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(flytta\\-bolan)(\\/)?(\\?.*)?$') then 'Flytta'
+       when REGEXP_CONTAINS(event_name, 'new') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(bolaneansokan)(\\/)?(\\?.*)?$') then 'Nytt'
+       when REGEXP_CONTAINS(event_name, 'commitment|loan_promise') or REGEXP_CONTAINS(page_location, '\\/lana\\/(hemnetkalkyl|bolan\\/lanelofte|bolan\\/hur\\-mycket\\-far\\-jag\\-lana)(\\/)?(\\?.*)?$') then 'Lånelöfte'
+       when REGEXP_CONTAINS(event_name, 'raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(utoka\\-bolan)(\\/)?(\\?.*)?$') then 'Utöka'
+       when REGEXP_CONTAINS(event_name, 'blanco') then loan_purpose
+       end as type,
+    case 
+      when REGEXP_CONTAINS(event_name, '_submit') then sum(value) else null end as event_value,
     page_location
   from
     ${ref('event')}
-  where REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
-  --OR event_name = "blanco_application_start"
-  --OR event_name = "blanco_application_nav"
-  --OR event_name = "blanco_application_submit"
-  OR event_name = 'page_view'
+  where 
+    REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
+    or event_name = "blanco_application_start"
+    or event_name = "blanco_application_nav"
+    or event_name = "blanco_application_submit"
+    or event_name = 'page_view'
   group by
     session_id,
     event_name,
@@ -69,11 +69,11 @@ WITH
     page_location
 ),
 
-sessions AS (
-    SELECT
+sessions as (
+  select
     session_start_date,
-    CONCAT(user_pseudo_id,ga_session_id) AS session_id,
-    CONCAT(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) AS source_medium
+    concat(user_pseudo_id,ga_session_id) as session_id,
+    concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium
   from
     ${ref('session')}
   group by
@@ -82,25 +82,25 @@ sessions AS (
     source_medium
 )
 
-SELECT
-  s.session_id,
+select
+  a.session_id,
   product,
   type,
   event_name,
   status,
-  SUM(event_value) AS event_value,
-  CASE 
-  WHEN event_name = 'blanco_application_submit' THEN 'Application Submit'
-  WHEN step IS NOT NULL and step_text IS NOT NULL THEN CONCAT('Steg ', step, ' - ', step_text) 
-  ELSE step_text END AS step,
-  REGEXP_EXTRACT(page_location, r'[^/]+//[^/]+(/[^?]*)') AS page_location,
+  sum(event_value) AS event_value,
+  case 
+    when event_name = 'blanco_application_submit' then 'Application Submit'
+    when step is not null and step_text is not null then concat('Steg ', step, ' - ', step_text) 
+  else step_text end as step,
+  REGEXP_EXTRACT(page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
   source_medium,
-  COUNT(DISTINCT s.session_id) AS sessions
+  count(distinct s.session_id) as sessions
 from
-  sessions s
-LEFT JOIN applications a ON s.session_id = a.session_id
-  --WHERE s.session_id = "AeqZxP+sust4pgYDMIETFIQENYKnmgILsitllJXm9no=.17161311591716131158"
-GROUP BY 
+  applications a
+join sessions s on a.session_id = s.session_id
+  --where s.session_id = "AeqZxP+sust4pgYDMIETFIQENYKnmgILsitllJXm9no=.17161311591716131158"
+group by  
   session_id,
   product,
   type,
