@@ -31,8 +31,9 @@ with int_event as (
   order by
     user_key,
     event_timestamp desc
-)
-, final as (
+), 
+
+final as (
   select
     a.*,
     if(coalesce(nullif(a.collected_traffic_source.source, '(direct)'), nullif(a.collected_traffic_source.medium, '(none)'), nullif(a.collected_traffic_source.campaign, '(direct)')) is null,
@@ -53,7 +54,9 @@ with int_event as (
       and cast(b.event_timestamp / 1000000 as int64) <= cast(a.event_timestamp / 1000000 as int64)
       and coalesce(nullif(b.collected_traffic_source.source, '(direct)'), nullif(b.collected_traffic_source.medium, '(none)'), nullif(b.collected_traffic_source.campaign, '(direct)')) is not null)[safe_offset(0)],
       a.collected_traffic_source
-    ) as last_non_direct_traffic_source
+    ) as last_non_direct_traffic_source,
+    if(event_name = 'page_view', COALESCE(LAST_VALUE(IF(event_name = 'page_view', page_location, null) IGNORE NULLS ) OVER (PARTITION BY session_id ORDER BY event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING ), '(entrance)' ), null) as previous_page_location,
+    if(event_name = 'page_view', COALESCE( FIRST_VALUE(if(event_name = 'page_view', page_location, null) IGNORE NULLS ) OVER (PARTITION BY session_id ORDER BY event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location
   from
     int_event as a )
 select
