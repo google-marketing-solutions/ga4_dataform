@@ -28,6 +28,7 @@ with final as (
         ga_session_key,
         ga_session_id,
         user_pseudo_id,
+        session_id,
         min(datetime(timestamp_seconds(ga_session_id), '${constants.REPORTING_TIME_ZONE}')) as session_start_datetime,
         logical_or(event_name = 'session_start') as has_session_start_event,
         max(session_engaged) as session_engaged,
@@ -39,7 +40,8 @@ with final as (
         user_key,
         ga_session_key,
         ga_session_id,
-        user_pseudo_id
+        user_pseudo_id,
+        session_id
 )
 
 select
