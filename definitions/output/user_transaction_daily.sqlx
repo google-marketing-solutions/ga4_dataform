@@ -19,7 +19,7 @@ config {
     schema: constants.OUTPUT_DATASET,
     description: "User transactions table, stores user transaction metrcis grouped by date.",
     tags: ["ecommerce"],
-    disabled: true /* enable model when needed */
+    disabled: false /* enable model when needed */
 }
 
 with
