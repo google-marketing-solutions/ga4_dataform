@@ -1,0 +1,129 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+config {
+    type: "table",
+    schema: constants.RESULTS_DATASET,
+    description: "All events connected to applications to use in analysis or in looker reports",
+    tags: [""],
+    disabled: false /* enable model when needed */
+}
+
+with ordered_events as (
+  select
+    *,
+    lag(previous_page_location) over (partition by session_id, page_location order by timestamp) as lag_previous_page_location,
+    lag(event_name) over (partition by session_id, page_location order by timestamp) as lag_event_name
+  from
+    ${ref('event')}
+),
+
+applications as (
+  select
+    session_id,
+    event_name,
+    step,
+    case
+      when REGEXP_CONTAINS(event_name, '_submit') then IFNULL(step_text, 'Application Submit') 
+      when REGEXP_CONTAINS(event_name, '_sign') then IFNULL(step_text, 'Application Sign')
+      when REGEXP_CONTAINS(event_name, '_start') then IFNULL(step_text, 'Application Start')
+      when step_text = 'start' then 'Application Start'
+      when event_name = 'calculator_nav' then field
+      else step_text end as step_text,
+    case
+      when REGEXP_CONTAINS(event_name, 'mortgage_application_submit') then status
+      when event_name = 'blanco_application_submit' then state
+      else null end AS status,
+    case
+       when REGEXP_CONTAINS(event_name, 'transfer|new|commitment|loan_promise|raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan') or REGEXP_CONTAINS(page_location, '\\/lana\\/hemnetkalkyl') then "Bolån"
+       when REGEXP_CONTAINS(event_name, 'blanco') or REGEXP_CONTAINS(page_location, '\\/lana\\/privatlan') then "Privatlån"
+       end AS product,
+    case
+       when REGEXP_CONTAINS(event_name, 'transfer') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(flytta\\-bolan)(\\/)?(\\?.*)?$') then 'Flytta'
+       when REGEXP_CONTAINS(event_name, 'new') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(bolaneansokan)(\\/)?(\\?.*)?$') then 'Nytt'
+       when REGEXP_CONTAINS(event_name, 'commitment|loan_promise') or REGEXP_CONTAINS(page_location, '\\/lana\\/(hemnetkalkyl|bolan\\/lanelofte|bolan\\/hur\\-mycket\\-far\\-jag\\-lana)(\\/)?(\\?.*)?$') then 'Lånelöfte'
+       when REGEXP_CONTAINS(event_name, 'raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(utoka\\-bolan)(\\/)?(\\?.*)?$') then 'Utöka'
+       when REGEXP_CONTAINS(event_name, 'blanco') then loan_purpose
+       end as type,
+    case 
+      when REGEXP_CONTAINS(event_name, '_submit') then sum(value) else null end as event_value,
+    page_location,
+    coalesce(previous_page_location, lag_previous_page_location) as effective_previous_page_location
+  from
+    ordered_events
+  where 
+    REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
+    or event_name = 'page_view'
+    or event_name = 'calculator'
+    or event_name = 'calculator_nav'
+    or event_name = 'mortgage_indicator_nav'
+    or event_name = 'mortgage_indicator'
+  group by
+    session_id,
+    event_name,
+    step,
+    step_text,
+    status,
+    type,
+    page_location,
+    previous_page_location,
+    lag_previous_page_location
+),
+
+sessions as (
+  select
+    session_start_date,
+    session_id,
+    concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium
+  from
+    ${ref('session')}
+  group by
+    session_start_date,
+    session_id,
+    source_medium
+)
+
+select
+  session_start_date AS date,
+  a.session_id,
+  product,
+  type,
+  a.event_name,
+  a.status,
+  sum(a.event_value) AS event_value,
+  case 
+    when a.event_name = 'blanco_application_submit' then 'Application Submit'
+    when a.step is not null and a.step_text is not null then concat('Steg ', a.step, ' - ', a.step_text) 
+  else a.step_text end as step,
+  REGEXP_EXTRACT(a.page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
+  REGEXP_EXTRACT(a.effective_previous_page_location, r'[^/]+//[^/]+(/[^?]*)') as previous_page_location,
+  s.source_medium,
+  count(distinct s.session_id) as sessions
+from
+  applications a
+join sessions s on a.session_id = s.session_id
+where s.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
+group by  
+  date,
+  a.session_id,
+  product,
+  type,
+  a.event_name,
+  a.status,
+  step,
+  page_location,
+  previous_page_location,
+  s.source_medium
