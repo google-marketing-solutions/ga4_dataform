@@ -56,12 +56,13 @@ with applications as (
   from
     ${ref('event')}
   where 
-    REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
+    --REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
+    REGEXP_CONTAINS(event_name, 'commitment_mortgage_application_')
     or event_name = 'page_view'
-    or event_name = 'calculator'
-    or event_name = 'calculator_nav'
-    or event_name = 'mortgage_indicator_nav'
-    or event_name = 'mortgage_indicator'
+    --or event_name = 'calculator'
+    --or event_name = 'calculator_nav'
+    --or event_name = 'mortgage_indicator_nav'
+    --or event_name = 'mortgage_indicator'
   group by
     session_id,
     event_name,
@@ -77,13 +78,15 @@ sessions as (
   select
     session_start_date,
     session_id,
-    concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium
+    concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium,
+    REGEXP_EXTRACT(landing_page, r'[^/]+//[^/]+(/[^?]*)') as landing_page
   from
     ${ref('session')}
   group by
     session_start_date,
     session_id,
-    source_medium
+    source_medium,
+    landing_page
 ),
 
 application_page_views as (
@@ -115,15 +118,14 @@ select
     when a.step is not null and a.step_text is not null then concat('Steg ', a.step, ' - ', a.step_text) 
   else a.step_text end as step,
   REGEXP_EXTRACT(a.page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
-  apv.page_view_event as page_view,
-  apv.previous_page_location_view as previous_page_location,
+  REGEXP_EXTRACT(apv.previous_page_location_view, r'[^/]+//[^/]+(/[^?]*)') as previous_page_location,
   s.source_medium,
   count(distinct s.session_id) as sessions
 from
   applications a
 join sessions s on a.session_id = s.session_id
 left join application_page_views apv on a.session_id = apv.session_id and a.page_location = apv.page_location
-where s.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
+where a.session_id = "OYSCAQNxt+57h/U5ZGmW7NFFjaQB8/jwJN6tQIaU4Ls=.17163299711716358957"
 group by  
   date,
   a.session_id,
@@ -133,6 +135,5 @@ group by
   a.status,
   step,
   page_location,
-  page_view,
   previous_page_location,
   s.source_medium
