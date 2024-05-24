@@ -25,8 +25,10 @@ config {
 with ordered_events as (
   select
     *,
-    lag(previous_page_location) over (partition by session_id order by event_timestamp) as lag_previous_page_location,
-    lag(event_name) over (partition by session_id order by event_timestamp) as lag_event_name
+    lag(previous_page_location) over (partition by session_id, page_location order by event_timestamp) as lag_previous_page_location,
+    lag(event_name) over (partition by session_id, page_location order by event_timestamp) as lag_event_name,
+    max(case when event_name = 'page_view' then previous_page_location end) 
+        over (partition by session_id, page_location order by event_timestamp rows between unbounded preceding and current row) as latest_page_view_previous_page_location
   from
     ${ref('event')}
 ),
@@ -61,12 +63,7 @@ applications as (
     case 
       when REGEXP_CONTAINS(event_name, '_submit') then sum(value) else null end as event_value,
     page_location,
-    previous_page_location,
-    case
-      when event_name != 'page_view' then
-        max(case when event_name = 'page_view' then previous_page_location end)
-        over (partition by session_id order by timestamp rows between unbounded preceding and current row)
-    end as effective_previous_page_location
+    coalesce(previous_page_location, latest_page_view_previous_page_location) as effective_previous_page_location
   from
     ordered_events
   where 
@@ -85,7 +82,8 @@ applications as (
     type,
     page_location,
     previous_page_location,
-    timestamp
+    latest_page_view_previous_page_location,
+    event_timestamp
 ),
 
 sessions as (
@@ -120,7 +118,7 @@ select
 from
   applications a
 join sessions s on a.session_id = s.session_id
-where a.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
+where s.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
 group by  
   date,
   a.session_id,
