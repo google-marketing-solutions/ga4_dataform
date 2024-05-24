@@ -32,6 +32,7 @@ with applications as (
       when REGEXP_CONTAINS(event_name, '_sign') then IFNULL(step_text, 'Application Sign')
       when REGEXP_CONTAINS(event_name, '_start') then IFNULL(step_text, 'Application Start')
       when step_text = 'start' then 'Application Start'
+      when event_name = 'calculator_nav' then field
       else step_text end as step_text,
     case
       when REGEXP_CONTAINS(event_name, 'mortgage_application_submit') then status
@@ -56,10 +57,11 @@ with applications as (
     ${ref('event')}
   where 
     REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
-    or event_name = "blanco_application_start"
-    or event_name = "blanco_application_nav"
-    or event_name = "blanco_application_submit"
     or event_name = 'page_view'
+    or event_name = 'calculator'
+    or event_name = 'calculator_nav'
+    or event_name = 'mortgage_indicator_nav'
+    or event_name = 'mortgage_indicator'
   group by
     session_id,
     event_name,
@@ -74,7 +76,7 @@ with applications as (
 sessions as (
   select
     session_start_date,
-    concat(user_pseudo_id, ga_session_id) as session_id,
+    session_id,
     concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium
   from
     ${ref('session')}
@@ -101,6 +103,7 @@ application_page_views as (
 )
 
 select
+  session_start_date AS date,
   a.session_id,
   product,
   type,
@@ -120,7 +123,9 @@ from
   applications a
 join sessions s on a.session_id = s.session_id
 left join application_page_views apv on a.session_id = apv.session_id and a.page_location = apv.page_location
+where s.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
 group by  
+  date,
   a.session_id,
   product,
   type,
