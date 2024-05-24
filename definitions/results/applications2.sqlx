@@ -115,7 +115,7 @@ select
 from
   applications a
 join sessions s on a.session_id = s.session_id
-where a.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
+where s.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
 group by  
   date,
   a.session_id,
