@@ -22,7 +22,16 @@ config {
     disabled: false /* enable model when needed */
 }
 
-with applications as (
+with ordered_events as (
+  select
+    *,
+    lag(previous_page_location) over (partition by session_id, page_location order by timestamp) as lag_previous_page_location,
+    lag(event_name) over (partition by session_id, page_location order by timestamp) as lag_event_name
+  from
+    ${ref('event')}
+),
+
+applications as (
   select
     session_id,
     event_name,
@@ -52,9 +61,9 @@ with applications as (
     case 
       when REGEXP_CONTAINS(event_name, '_submit') then sum(value) else null end as event_value,
     page_location,
-    previous_page_location
+    coalesce(previous_page_location, lag_previous_page_location) as effective_previous_page_location
   from
-    ${ref('event')}
+    ordered_events
   where 
     REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
     or event_name = 'page_view'
@@ -70,7 +79,8 @@ with applications as (
     status,
     type,
     page_location,
-    previous_page_location
+    previous_page_location,
+    lag_previous_page_location
 ),
 
 sessions as (
@@ -84,22 +94,6 @@ sessions as (
     session_start_date,
     session_id,
     source_medium
-),
-
-application_page_views as (
-  select
-    a1.session_id,
-    a1.page_location,
-    a2.event_name as page_view_event,
-    a2.previous_page_location as previous_page_location_view
-  from
-    applications a1
-  left join
-    applications a2
-  on
-    a1.session_id = a2.session_id
-    and a1.page_location = a2.page_location
-    and a2.event_name = 'page_view'
 )
 
 select
@@ -115,15 +109,13 @@ select
     when a.step is not null and a.step_text is not null then concat('Steg ', a.step, ' - ', a.step_text) 
   else a.step_text end as step,
   REGEXP_EXTRACT(a.page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
-  apv.page_view_event as page_view,
-  apv.previous_page_location_view as previous_page_location,
+  REGEXP_EXTRACT(a.effective_previous_page_location, r'[^/]+//[^/]+(/[^?]*)') as previous_page_location,
   s.source_medium,
   count(distinct s.session_id) as sessions
 from
   applications a
 join sessions s on a.session_id = s.session_id
-left join application_page_views apv on a.session_id = apv.session_id and a.page_location = apv.page_location
-where s.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
+where a.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
 group by  
   date,
   a.session_id,
@@ -133,6 +125,5 @@ group by
   a.status,
   step,
   page_location,
-  page_view,
   previous_page_location,
   s.source_medium
