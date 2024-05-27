@@ -38,7 +38,7 @@ pre_operations {
 
 with staging as (
     select
-        stg_events.* except(event_traffic_source, collected_traffic_source, event_timestamp, event_datetime),
+        stg_events.* except(event_traffic_source, collected_traffic_source, event_datetime),
         ${helpers.adjustCampaignTimestamp('stg_events')} as event_timestamp,
         datetime(timestamp_seconds(cast(${helpers.adjustCampaignTimestamp('stg_events')} / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
         to_base64(md5(concat(user_pseudo_id, stream_id))) as user_key,
