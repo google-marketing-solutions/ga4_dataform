@@ -26,6 +26,7 @@ with applications as (
   select
     session_id,
     event_name,
+    event_timestamp,
     step,
     case
       when REGEXP_CONTAINS(event_name, '_submit') then IFNULL(step_text, 'Application Submit') 
@@ -68,12 +69,24 @@ with applications as (
   group by
     session_id,
     event_name,
+    event_timestamp,
     step,
     step_text,
     status,
     type,
     page_location,
     previous_page_location
+),
+
+page_views as (
+  select
+    session_id,
+    event_timestamp,
+    page_location,
+    LAG(page_location) OVER (PARTITION BY session_id ORDER BY event_timestamp) as previous_page_location
+  from
+    ${ref('event')}
+  where event_name = 'page_view'
 ),
 
 sessions as (
@@ -95,6 +108,7 @@ select
   product,
   type,
   event_name,
+  event_timestamp,
   status,
   sum(event_value) AS event_value,
   case 
@@ -115,6 +129,7 @@ group by
   product,
   type,
   event_name,
+  event_timestamp,
   status,
   step,
   page_location,
