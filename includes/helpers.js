@@ -169,15 +169,18 @@ function updatePaidSearchTrafficSource(struct, structColumn, tableAlias, gadsCam
 
     return `if(${tableAlias}.event_name in ('first_visit', 'first_open') and ${tableAlias}.${struct}.${structColumn} is null,
                 ${tableAlias}.traffic_source.${userTrafficSourceColumn},
-                if(${tableAlias}.event_traffic_source.gclid is not null or ${tableAlias}.page_location like '%gbraid%' or ${tableAlias}.page_location like '%wbraid%',
+                if(${tableAlias}.collected_traffic_source.gclid is not null or ${tableAlias}.page_location like '%gbraid%' or ${tableAlias}.page_location like '%wbraid%',
                     if ('${structColumn}' in ('manual_campaign_name'),
                         if (${gadsCampaignName} is null,
                             '${trafficSource.cpcValue}',
                              ${gadsCampaignName}
                         ),
-                        '${trafficSource.cpcValue}'
+                        if('${structColumn}' in ('manual_medium'),
+                            ifnull(${tableAlias}.${struct}.${structColumn}, '${trafficSource.cpcValue}'),
+                            '${trafficSource.cpcValue}'
+                        )
                     ),
-                    if(${tableAlias}.event_traffic_source.dclid is not null and ${tableAlias}.event_traffic_source.gclid is null,
+                    if(${tableAlias}.collected_traffic_source.dclid is not null and ${tableAlias}.collected_traffic_source.gclid is null,
                             '${trafficSource.cpmValue}',
                             ${tableAlias}.${struct}.${structColumn}
                     )
