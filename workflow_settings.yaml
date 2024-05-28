@@ -1,5 +1,5 @@
-defaultProject: your-project-id
-defaultLocation: EU
-defaultDataset: ga4_dataform
+defaultProject: robsantos-bulkupload
+defaultLocation: US
+defaultDataset: ga4_dataform_dataset_nm_git
 defaultAssertionDataset: ga4_dataform_assertions
-dataformCoreVersion: 3.0.0-beta.4    
+dataformCoreVersion: 3.0.0-beta.4 
