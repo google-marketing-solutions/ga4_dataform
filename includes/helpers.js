@@ -175,7 +175,7 @@ function updatePaidSearchTrafficSource(struct, structColumn, tableAlias, gadsCam
                             '${trafficSource.cpcValue}',
                              ${gadsCampaignName}
                         ),
-                        if('${structColumn}' in ('manual_medium'),
+                        if('${structColumn}' in ('manual_source'),
                             ifnull(${tableAlias}.${struct}.${structColumn}, '${trafficSource.cpcValue}'),
                             '${trafficSource.cpcValue}'
                         )
