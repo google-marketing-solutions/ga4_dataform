@@ -17,6 +17,7 @@ config {
     type: "table",
     schema: constants.OUTPUT_DATASET,
     description: "Sessions model, outputs one row per user session.",
+    tags: ["all"],
     bigquery: {
         partitionBy: "session_start_date",
         clusterBy: ["user_key", "ga_session_key"]
@@ -64,6 +65,22 @@ with session_first_last_source as (
         ga_session_key,
         ga_session_id,
         user_pseudo_id
+),
+
+sessions_final as (
+    SELECT
+        * EXCEPT(first_traffic_source, last_non_null_traffic_source),
+        STRUCT(
+            if(first_traffic_source.source = 'tagassistant.google.com', null, first_traffic_source.source) as source,
+            if(first_traffic_source.source = 'tagassistant.google.com', null, first_traffic_source.medium) as medium,
+            if(first_traffic_source.source = 'tagassistant.google.com', null, first_traffic_source.campaign) as campaign
+        ) as first_traffic_source,
+        STRUCT(
+            if(last_non_null_traffic_source.source = 'tagassistant.google.com', null, last_non_null_traffic_source.source) as source,
+            if(last_non_null_traffic_source.source = 'tagassistant.google.com', null, last_non_null_traffic_source.medium) as medium,
+            if(last_non_null_traffic_source.source = 'tagassistant.google.com', null, last_non_null_traffic_source.campaign) as campaign
+        ) as last_non_null_traffic_source
+    FROM session_first_last_source
 ), 
 
   get_last_non_direct_traffic_source as (
@@ -85,7 +102,7 @@ with session_first_last_source as (
       a.first_traffic_source
      ) as last_non_direct_traffic_source
   from
-    session_first_last_source a
+    sessions_final a
     join ${ref('int_session')} b
     on a.user_key = b.user_key
     and a.ga_session_key = b.ga_session_key

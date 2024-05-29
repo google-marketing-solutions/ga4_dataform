@@ -17,6 +17,7 @@
 config {
   type: "table",
   schema: constants.STAGING_DATASET,
+  tags: ["all"],
   description: "This table stores all automatically generated and recommended GA4 events. (Excludes custom events)"
 }
 
