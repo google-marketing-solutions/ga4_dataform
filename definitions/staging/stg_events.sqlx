@@ -18,6 +18,7 @@ config {
   type: "incremental",
   schema: constants.STAGING_DATASET,
   description: "Staging model for GA4 events_* table. Basic column casting and value extractions are performed here",
+  tags: ["all"],
   bigquery: {
     partitionBy: "event_date",
     clusterBy: ["user_pseudo_id", "ga_session_id"]
@@ -55,14 +56,13 @@ with
       datetime(timestamp_seconds(cast(event_timestamp / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
       cast(event_date as date format 'yyyymmdd') as event_date, --event_date is already reported in ga4 property reporting time zone
       lower(replace(trim(event_name), " ", "_")) as event_name,
-      event_params,
+      --event_params,
       event_previous_timestamp,
-      event_value_in_usd,
       event_bundle_sequence_id,
       event_server_timestamp_offset,
       user_id,
       user_pseudo_id,
-      user_properties,
+      --user_properties,
       user_first_touch_timestamp,
       device,
       geo,
@@ -95,10 +95,12 @@ with
       ${helpers.unnestColumn('event_params', 'engagement_time_msec', 'int_value')} as engagement_time_msec,
       ${helpers.unnestColumn('event_params', 'page_title')} as page_title,
       ${helpers.unnestColumn('event_params', 'page_referrer')} as page_referrer,
-      ${helpers.unnestColumn('event_params', 'destination_url')} as destination_url,
-      ${helpers.unnestColumn('event_params', 'button_text')} as button_text,
+      CONCAT(user_pseudo_id,${helpers.unnestColumn('event_params', 'ga_session_id', 'int_value')}) as session_id,
       ${helpers.unnestColumn('event_params', 'internal_traffic')} as internal_traffic,
       ${helpers.unnestColumn('event_params', 'environment')} as environment,
+      STRUCT(
+      ${helpers.unnestColumn('event_params', 'destination_url')} as destination_url,
+      ${helpers.unnestColumn('event_params', 'button_text')} as button_text,
       ${helpers.unnestColumn('event_params', 'step_text')} as step_text,
       ${helpers.unnestColumn('event_params', 'account_purpose')} as account_purpose,
       ${helpers.unnestColumn('event_params', 'status')} as status,
@@ -165,7 +167,20 @@ with
       ${helpers.unnestColumn('event_params', 'transfer_limit', 'int_value')} as transfer_limit,
       ${helpers.unnestColumn('event_params', 'cost_of_loan_and_credit', 'int_value')} as cost_of_loan_and_credit,
       ${helpers.unnestColumn('event_params', 'account_credit_value', 'int_value')} as account_credit_value,
-      ${helpers.unnestColumn('event_params', 'other_loans_amount', 'int_value')} as other_loans_amount,
+      ${helpers.unnestColumn('event_params', 'other_loans_amount', 'int_value')} as other_loans_amount
+      ) as event_params,
+      STRUCT(
+      ${helpers.unnestColumn('user_properties', 'has_account')} as has_account,
+      ${helpers.unnestColumn('user_properties', 'has_account_disposition')} as has_account_disposition,
+      ${helpers.unnestColumn('user_properties', 'has_card')} as has_card,
+      ${helpers.unnestColumn('user_properties', 'has_fund')} as has_fund,
+      ${helpers.unnestColumn('user_properties', 'has_ica_loyalty_card')} as has_ica_loyalty_card,
+      ${helpers.unnestColumn('user_properties', 'has_ica_loyalty_card_debit')} as has_ica_loyalty_card_debit,
+      ${helpers.unnestColumn('user_properties', 'has_home_loan')} as has_home_loan,
+      ${helpers.unnestColumn('user_properties', 'has_private_loan')} as has_private_loan,
+      ${helpers.unnestColumn('user_properties', 'experiment_name_cookie')} as exp_name_cookie,
+      ${helpers.unnestColumn('user_properties', 'exp_name_cookie_value')} as exp_name_cookie_value
+      ) as user_params,
       (
       select
         as struct lower(${helpers.unnestColumn('event_params', 'source')}) as source,
@@ -180,8 +195,7 @@ with
                 (case
                   when (${helpers.unnestColumn('event_params', 'session_engaged')}) = "1" then 1
                 end
-          ) ) as session_engaged,
-      CONCAT(user_pseudo_id,${helpers.unnestColumn('event_params', 'ga_session_id', 'int_value')}) as session_id
+          ) ) as session_engaged
     from
       ${ref('events_*')}
     where

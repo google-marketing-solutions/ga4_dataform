@@ -18,7 +18,7 @@ config {
     type: "table",
     schema: constants.RESULTS_DATASET,
     description: "All events connected to applications to use in analysis or in looker reports",
-    tags: [""],
+    tags: ["all"],
     disabled: false /* enable model when needed */
 }
 
@@ -27,45 +27,57 @@ with applications as (
     session_id,
     event_name,
     event_timestamp,
-    step,
+    event_params.step,
     case
-      when REGEXP_CONTAINS(event_name, '_submit') then IFNULL(step_text, 'Application Submit') 
-      when REGEXP_CONTAINS(event_name, '_sign') then IFNULL(step_text, 'Application Sign')
-      when REGEXP_CONTAINS(event_name, '_start') then IFNULL(step_text, 'Application Start')
-      when step_text = 'start' then 'Application Start'
-      when event_name = 'calculator_nav' then field
-      else step_text end as step_text,
+      when REGEXP_CONTAINS(event_name, '_submit') then IFNULL(event_params.step_text, 'Submit') 
+      when REGEXP_CONTAINS(event_name, '_sign') then IFNULL(event_params.step_text, 'Sign')
+      when REGEXP_CONTAINS(event_name, '_start') then IFNULL(event_params.step_text, 'Start')
+      when event_params.step_text = 'start' then 'Start'
+      when event_name = 'calculator_nav' then event_params.field
+      else event_params.step_text end as step_text,
     case
-      when REGEXP_CONTAINS(event_name, 'mortgage_application_submit') then status
-      when event_name = 'blanco_application_submit' then state
+      when REGEXP_CONTAINS(event_name, 'mortgage_application_submit') then event_params.status
+      when event_name = 'blanco_application_submit' then event_params.state
       else null end AS status,
     case
-       when REGEXP_CONTAINS(event_name, 'transfer|new|commitment|loan_promise|raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan') or REGEXP_CONTAINS(page_location, '\\/lana\\/hemnetkalkyl') then "Bolån"
-       when REGEXP_CONTAINS(event_name, 'blanco') or REGEXP_CONTAINS(page_location, '\\/lana\\/privatlan') then "Privatlån"
+       when REGEXP_CONTAINS(event_name, 'transfer|new|commitment|loan_promise|raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan') or REGEXP_CONTAINS(page_location, '\\/lana\\/hemnetkalkyl') and not regexp_contains(page_location, 'ansokan') then "Bolån"
+       when REGEXP_CONTAINS(event_name, 'blanco') or REGEXP_CONTAINS(page_location, '\\/lana\\/privatlan') or REGEXP_CONTAINS(page_location, 'lana\\/(blancolan|billan|batlan|energilan|laneskydd|samla\\-lan|hur\\-mycket\\-far\\-jag\\-lana|korkortslan|kokslan)') and not REGEXP_CONTAINS(page_location, 'ansok') then "Privatlån"
        end AS product,
     case
        when REGEXP_CONTAINS(event_name, 'transfer') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(flytta\\-bolan)(\\/)?(\\?.*)?$') then 'Flytta'
        when REGEXP_CONTAINS(event_name, 'new') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(bolaneansokan)(\\/)?(\\?.*)?$') then 'Nytt'
        when REGEXP_CONTAINS(event_name, 'commitment|loan_promise') or REGEXP_CONTAINS(page_location, '\\/lana\\/(hemnetkalkyl|bolan\\/lanelofte|bolan\\/hur\\-mycket\\-far\\-jag\\-lana)(\\/)?(\\?.*)?$') then 'Lånelöfte'
        when REGEXP_CONTAINS(event_name, 'raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(utoka\\-bolan)(\\/)?(\\?.*)?$') then 'Utöka'
-       when REGEXP_CONTAINS(event_name, 'blanco') then loan_purpose
+       when REGEXP_CONTAINS(event_name, 'blanco') then event_params.loan_purpose
        end as type,
     case 
-      when REGEXP_CONTAINS(event_name, '_submit') then sum(value) else null end as event_value,
+      when REGEXP_CONTAINS(event_name, '_submit') then sum(event_params.value) else null end as event_value,
     page_location,
-    previous_page_location
+    previous_page_location,
+        IF(REGEXP_CONTAINS(event_name, 'application'), --För vilka event_name vill vi göra denna koll?
+    COALESCE( 
+      LAST_VALUE(
+        IF(
+          event_name = 'page_view' AND NOT REGEXP_CONTAINS(page_location, '/ansok|vara-tips|kundservice|utloggad|prislista|logga-in|forsakra/forsakringserbjudande/') --Vad är villkoret för att en page_view ska vara föregående? I detta fallet att den inte innehåller ordet "ansok"
+        , page_location, NULL) IGNORE NULLS ) 
+       OVER (PARTITION BY session_id ORDER BY event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING ) -- 
+       , '(entrance)' -- Om det inte fanns nån page_view i sessionen som uppfyllde viLlkoret så defaultar vi till (entrance)
+    ),
+    NULL ) 
+    AS previous_submit_location
   from
     ${ref('event')}
   where 
     REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
-    --or event_name = "blanco_application_start"
-    --or event_name = "blanco_application_nav"
-    --or event_name = "blanco_application_submit"
+    or event_name = "blanco_application_start"
+    or event_name = "blanco_application_nav"
+    or event_name = "blanco_application_submit"
     or event_name = 'page_view'
     or event_name = 'calculator'
     or event_name = 'calculator_nav'
     or event_name = 'mortgage_indicator_nav'
     or event_name = 'mortgage_indicator'
+    and environment = 'prod'
   group by
     session_id,
     event_name,
@@ -78,27 +90,22 @@ with applications as (
     previous_page_location
 ),
 
-page_views as (
-  select
-    session_id,
-    event_timestamp,
-    page_location,
-    LAG(page_location) OVER (PARTITION BY session_id ORDER BY event_timestamp) as previous_page_location
-  from
-    ${ref('event')}
-  where event_name = 'page_view'
-),
-
 sessions as (
   select
     session_start_date,
     session_id,
+    pages_in_session,
+    landing_page,
+    logged_in,
     concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium
   from
     ${ref('session')}
   group by
     session_start_date,
     session_id,
+    pages_in_session,
+    landing_page,
+    logged_in,
     source_medium
 )
 
@@ -117,12 +124,16 @@ select
   else step_text end as step,
   REGEXP_EXTRACT(page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
   REGEXP_EXTRACT(previous_page_location, r'[^/]+//[^/]+(/[^?]*)') as previous_page_location,
+  REGEXP_EXTRACT(previous_submit_location, r'[^/]+//[^/]+(/[^?]*)') as previous_submit_location,
+  REGEXP_EXTRACT(landing_page, r'[^/]+//[^/]+(/[^?]*)') as landing_page,
+  pages_in_session,
+  logged_in,
   source_medium,
   count(distinct s.session_id) as sessions
 from
   applications a
 join sessions s on a.session_id = s.session_id
-  where s.session_id = "43ZG2LYEqaqivwl05sWf8uuiTWo66TpguxCol5OqPKc=.17109654211716312269"
+  --where s.session_id = 'W0/ssPKZJC9u8Amb/M/uynMz//MDTzl/d6GgBWL5Oyk=.17114783711716407313'
 group by  
   date,
   session_id,
@@ -134,4 +145,8 @@ group by
   step,
   page_location,
   previous_page_location,
+  previous_submit_location,
+  landing_page,
+  pages_in_session,
+  logged_in,
   source_medium
