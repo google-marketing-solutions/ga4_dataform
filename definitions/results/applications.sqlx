@@ -36,12 +36,15 @@ with applications as (
       when event_name = 'calculator_nav' then event_params.field
       else event_params.step_text end as step_text,
     case
-      when REGEXP_CONTAINS(event_name, 'mortgage_application_submit') then event_params.status
+      when regexp_contains(event_name, 'mortgage_application_submit') then event_params.status
+      when regexp_contains(event_name, 'debit_card|credit_card|ica_student|bank_account|increase_card|savings|isk|depot') then event_params.status
       when event_name = 'blanco_application_submit' then event_params.state
       else null end AS status,
     case
-       when REGEXP_CONTAINS(event_name, 'transfer|new|commitment|loan_promise|raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan') or REGEXP_CONTAINS(page_location, '\\/lana\\/hemnetkalkyl') and not regexp_contains(page_location, 'ansokan') then "Bolån"
-       when REGEXP_CONTAINS(event_name, 'blanco') or REGEXP_CONTAINS(page_location, '\\/lana\\/privatlan') or REGEXP_CONTAINS(page_location, 'lana\\/(blancolan|billan|batlan|energilan|laneskydd|samla\\-lan|hur\\-mycket\\-far\\-jag\\-lana|korkortslan|kokslan)') and not REGEXP_CONTAINS(page_location, 'ansok') then "Privatlån"
+       when REGEXP_CONTAINS(event_name, 'transfer|new|commitment|loan_promise|raise|mortgage_indicator') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan') or REGEXP_CONTAINS(page_location, '\\/lana\\/hemnetkalkyl') or REGEXP_CONTAINS(page_location, '\\/min-ekonomi\\/(pagaende\\-arenden\\/lanelofte|pagaende\\-arenden\\/bolan|mina\\-lan\\/mina\\-bolan)') and not regexp_contains(page_location, 'ansokan') then "Bolån"
+       when REGEXP_CONTAINS(event_name, 'blanco|blanco_loan_protection') or REGEXP_CONTAINS(page_location, '\\/(lana\\/privatlan|lan\\/privatlan)') or REGEXP_CONTAINS(page_location, '\\/lana\\/(blancolan|billan|batlan|energilan|laneskydd|samla\\-lan|hur\\-mycket\\-far\\-jag\\-lana|korkortslan|kokslan|lana\\-till\\-badrum)') or REGEXP_CONTAINS(page_location, '\\/min-ekonomi/(pagaende\\-arenden\\/privatlan|mina\\-lan\\/mina\\-privatlan)') and not REGEXP_CONTAINS(page_location, 'ansok') then "Privatlån"
+       when REGEXP_CONTAINS(event_name, 'debit_card|credit_card|ica_student|bank_account|increase_card') or REGEXP_CONTAINS(page_location, '\\/kort\\-och\\-betala') and not regexp_contains(page_location, 'ansok') then "Kort"
+       when REGEXP_CONTAINS(event_name, 'savings|isk|depot') or REGEXP_CONTAINS(page_location, '\\/spara') and not regexp_contains(page_location, 'ansok') then "Spara"
        end AS product,
     case
        when REGEXP_CONTAINS(event_name, 'transfer') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(flytta\\-bolan)(\\/)?(\\?.*)?$') then 'Flytta'
@@ -50,6 +53,8 @@ with applications as (
        when REGEXP_CONTAINS(event_name, 'raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(utoka\\-bolan)(\\/)?(\\?.*)?$') then 'Utöka'
        when REGEXP_CONTAINS(event_name, 'blanco') then event_params.loan_purpose
        end as type,
+    case
+      when REGEXP_CONTAINS(event_name, '_submit') then session_id else null end as submits,
     case 
       when REGEXP_CONTAINS(event_name, '_submit') then sum(event_params.value) else null end as event_value,
     page_location,
@@ -69,7 +74,10 @@ with applications as (
     ${ref('event')}
   where 
     REGEXP_CONTAINS(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
+    or REGEXP_CONTAINS(event_name, 'savings|isk|depot')
+    or REGEXP_CONTAINS(event_name, 'debit_card|credit_card|ica_student|bank_account|increase_card')
     or event_name = "blanco_application_start"
+    or REGEXP_CONTAINS(event_name, 'blanco_loan_protection')
     or event_name = "blanco_application_nav"
     or event_name = "blanco_application_submit"
     or event_name = 'page_view'
@@ -97,7 +105,8 @@ sessions as (
     pages_in_session,
     landing_page,
     logged_in,
-    concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium
+    concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium,
+    last_non_direct_traffic_source.channel_group
   from
     ${ref('session')}
   group by
@@ -106,7 +115,8 @@ sessions as (
     pages_in_session,
     landing_page,
     logged_in,
-    source_medium
+    source_medium,
+    channel_group
 )
 
 select
@@ -117,9 +127,10 @@ select
   event_name,
   event_timestamp,
   status,
+  count(distinct submits) as submits,
   sum(event_value) AS event_value,
   case 
-    when event_name = 'blanco_application_submit' then 'Application Submit'
+    when event_name = 'blanco_application_submit' then 'Submit'
     when step is not null and step_text is not null then concat('Steg ', step, ' - ', step_text) 
   else step_text end as step,
   REGEXP_EXTRACT(page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
@@ -129,7 +140,8 @@ select
   pages_in_session,
   logged_in,
   source_medium,
-  count(distinct s.session_id) as sessions
+  channel_group,
+  count(distinct a.session_id) as sessions
 from
   applications a
 join sessions s on a.session_id = s.session_id
@@ -149,4 +161,5 @@ group by
   landing_page,
   pages_in_session,
   logged_in,
-  source_medium
+  source_medium,
+  channel_group

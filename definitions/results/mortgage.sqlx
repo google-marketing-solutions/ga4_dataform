@@ -33,6 +33,7 @@ with applications as (
 
   select
     date,
+    session_id,
     type,
     event_name,
     status,
@@ -40,11 +41,12 @@ with applications as (
     step,
     previous_submit_location,
     source_medium,
-    sum(sessions) as sessions,
+    count(distinct session_id) as sessions,
   from
     applications
   group by
     date,
+    session_id,
     type,
     event_name,
     status,
