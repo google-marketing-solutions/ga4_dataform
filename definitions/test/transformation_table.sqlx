@@ -1,0 +1,12 @@
+config {
+  type: "table",
+  dependencies: ["source_table"]
+}
+
+SELECT
+  *,
+  ${updatePaidSearchTrafficSource('event_params', 'manual_source', 'st', 'gads_campaign_name')} AS updated_source,
+  ${updatePaidSearchTrafficSource('event_params', 'manual_medium', 'st', 'gads_campaign_name')} AS updated_medium,
+  ${updatePaidSearchTrafficSource('event_params', 'manual_campaign_name', 'st', 'gads_campaign_name')} AS updated_campaign
+FROM
+  ${ref('source_table')} st
