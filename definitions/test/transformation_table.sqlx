@@ -4,7 +4,7 @@ config {
   schema: "your_schema_name"
 }
 
-import { updatePaidSearchTrafficSource } from './helper.js';
+let { updatePaidSearchTrafficSource } = require('./helper.js');
 
 SELECT
   *,
