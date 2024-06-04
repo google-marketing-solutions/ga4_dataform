@@ -17,7 +17,6 @@ config {
     type: "table",
     schema: constants.OUTPUT_DATASET,
     description: "Sessions model, outputs one row per user session.",
-    tags: ["all"],
     bigquery: {
         partitionBy: "session_start_date",
         clusterBy: ["user_key", "ga_session_key"]
@@ -26,24 +25,10 @@ config {
 
 with session_first_last_source as (
     select
-        session_id,
         user_key,
         ga_session_key,
         ga_session_id,
         user_pseudo_id,
-        STRING_AGG(REGEXP_REPLACE(page_location, '\\?.*', '') ORDER BY event_timestamp) as pages_in_session,
-        ARRAY_AGG(REGEXP_REPLACE(page_location, '\\?.*', '') IGNORE NULLS ORDER BY event_timestamp LIMIT 1)[SAFE_OFFSET(0)] as landing_page,
-        MAX(IF(event_name = "login_success", true, false)) as logged_in, 
-        MAX(IF(user_params.has_account = "Yes", true, false)) as existing_customer, 
-        MAX(user_params.has_account) as has_account,
-        MAX(user_params.has_account_disposition) as has_account_disposition,
-        MAX(user_params.has_card) as has_card,
-        MAX(user_params.has_fund) as has_fund,
-        MAX(user_params.has_ica_loyalty_card) as has_ica_loyalty_card,
-        MAX(user_params.has_home_loan) as has_home_loan,
-        MAX(user_params.has_private_loan) as has_private_loan,
-        MAX(user_params.exp_name_cookie) as exp_name_cookie,
-        MAX(user_params.exp_name_cookie_value) as exp_name_cookie_value,
         --session first traffic source
         array_agg(
             if(coalesce(nullif(collected_traffic_source.source, '(direct)'), nullif(collected_traffic_source.medium, '(none)'), nullif(collected_traffic_source.campaign, '(direct)')) is not null,
@@ -70,30 +55,13 @@ with session_first_last_source as (
     where ga_session_key is not null
     and event_name not in ('session_start') --this condition could be commented/removed if looking at data post November 2, 2023 when it started being populated.
     group by
-        session_id,
         user_key,
         ga_session_key,
         ga_session_id,
         user_pseudo_id
-),
+)
 
-sessions_final as (
-    SELECT
-        * EXCEPT(first_traffic_source, last_non_null_traffic_source),
-        STRUCT(
-            if(first_traffic_source.source = 'tagassistant.google.com', null, first_traffic_source.source) as source,
-            if(first_traffic_source.source = 'tagassistant.google.com', null, first_traffic_source.medium) as medium,
-            if(first_traffic_source.source = 'tagassistant.google.com', null, first_traffic_source.campaign) as campaign
-        ) as first_traffic_source,
-        STRUCT(
-            if(last_non_null_traffic_source.source = 'tagassistant.google.com', null, last_non_null_traffic_source.source) as source,
-            if(last_non_null_traffic_source.source = 'tagassistant.google.com', null, last_non_null_traffic_source.medium) as medium,
-            if(last_non_null_traffic_source.source = 'tagassistant.google.com', null, last_non_null_traffic_source.campaign) as campaign
-        ) as last_non_null_traffic_source
-    FROM session_first_last_source
-), 
-
-  get_last_non_direct_traffic_source as (
+, get_last_non_direct_traffic_source as (
   select
     a.*,
     b.session_start_datetime,
@@ -112,28 +80,14 @@ sessions_final as (
       a.first_traffic_source
      ) as last_non_direct_traffic_source
   from
-    sessions_final a
+    session_first_last_source a
     join ${ref('int_session')} b
     on a.user_key = b.user_key
     and a.ga_session_key = b.ga_session_key
-), 
+)
 
-  add_channel_group as (
+, add_channel_group as (
   select
-    t.session_id,
-    t.pages_in_session,
-    t.landing_page,
-    t.logged_in,
-    t.existing_customer,
-    t.has_account,
-    t.has_account_disposition,
-    t.has_card,
-    t.has_fund,
-    t.has_ica_loyalty_card,
-    t.has_home_loan,
-    t.has_private_loan,
-    t.exp_name_cookie,
-    t.exp_name_cookie_value,
     t.user_key,
     t.ga_session_key,
     t.ga_session_id,
