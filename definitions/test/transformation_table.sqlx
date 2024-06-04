@@ -1,7 +1,10 @@
 config {
   type: "table",
-  dependencies: ["source_table"]
+  dependencies: ["source_table"],
+  schema: "your_schema_name"
 }
+
+import { updatePaidSearchTrafficSource } from './helper.js';
 
 SELECT
   *,
