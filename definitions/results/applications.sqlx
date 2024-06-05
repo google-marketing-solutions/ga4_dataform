@@ -134,7 +134,7 @@ select
 from
   applications a
 join sessions s on a.session_id = s.session_id
-  where a.session_id = 'zzVL8WwO1B1veicqdA36FuKpvB+428oSixjNmAKipDM=.17169220881716922087'
+  --where a.session_id = 'zzVL8WwO1B1veicqdA36FuKpvB+428oSixjNmAKipDM=.17169220881716922087'
 group by  
   date,
   session_id,
