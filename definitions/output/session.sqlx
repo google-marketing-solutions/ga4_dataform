@@ -29,6 +29,7 @@ with session_first_last_source as (
         ga_session_key,
         ga_session_id,
         user_pseudo_id,
+        session_id,
         --session first traffic source
         array_agg(
             if(coalesce(nullif(collected_traffic_source.source, '(direct)'), nullif(collected_traffic_source.medium, '(none)'), nullif(collected_traffic_source.campaign, '(direct)')) is not null,
@@ -58,10 +59,27 @@ with session_first_last_source as (
         user_key,
         ga_session_key,
         ga_session_id,
-        user_pseudo_id
-)
+        user_pseudo_id,
+        session_id
+), 
 
-, get_last_non_direct_traffic_source as (
+pages as (
+    select
+        user_key,
+        ga_session_key,
+        session_id,
+        string_agg(page_location order by event_timestamp) as pages_in_session,
+        array_agg(page_location ignore nulls order by event_timestamp limit 1)[SAFE_OFFSET(0)] as landing_page,
+        string_agg(page_referrer order by event_timestamp) as page_referrer
+    from ${ref('int_event')}
+    where event_name = 'page_view'
+    group by 
+        user_key,
+        ga_session_key,
+        session_id
+),
+
+get_last_non_direct_traffic_source as (
   select
     a.*,
     b.session_start_datetime,
@@ -84,14 +102,17 @@ with session_first_last_source as (
     join ${ref('int_session')} b
     on a.user_key = b.user_key
     and a.ga_session_key = b.ga_session_key
-)
+), 
 
-, add_channel_group as (
+add_channel_group as (
   select
     t.user_key,
     t.ga_session_key,
     t.ga_session_id,
     t.user_pseudo_id,
+    t.session_id,
+    p.pages_in_session,
+    p.landing_page,
     t.session_start_datetime,
     t.session_start_date,
     t.session_engaged,
@@ -120,6 +141,10 @@ with session_first_last_source as (
       on t.first_traffic_source.source = cf.source
     left join ${ref('stg_source_categories')} cl
       on t.last_non_direct_traffic_source.source = cl.source
+    left join pages p
+      on p.user_key = t.user_key
+      and p.ga_session_key = t.ga_session_key
+
 )
 
 select

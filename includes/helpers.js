@@ -72,7 +72,7 @@ function groupChannels(source, medium, sourceCategory) {
                     then 'ICA Försäkring'
                 when
                     regexp_contains(${medium}, r"^(paid|paidsocial|paid social|paidsicial)")
-                    or regexp_contains(${source}, r"^(adform|RTL|olv|tv4|rtb|matterkind|schibsted|dfa|dbm)")
+                    or regexp_contains(${source}, r"^(adform|RTL|olv|tv4|rtb|matterkind|schibsted|dfa)")
                     or ${medium} = "video"
                     then 'Paid Traffic'
                 when

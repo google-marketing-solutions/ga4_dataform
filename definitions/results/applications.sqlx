@@ -104,19 +104,11 @@ sessions as (
     session_id,
     pages_in_session,
     landing_page,
-    logged_in,
+    --logged_in,
     concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium,
     last_non_direct_traffic_source.channel_group
   from
     ${ref('session')}
-  group by
-    session_start_date,
-    session_id,
-    pages_in_session,
-    landing_page,
-    logged_in,
-    source_medium,
-    channel_group
 )
 
 select
@@ -138,7 +130,7 @@ select
   REGEXP_EXTRACT(previous_submit_location, r'[^/]+//[^/]+(/[^?]*)') as previous_submit_location,
   REGEXP_EXTRACT(landing_page, r'[^/]+//[^/]+(/[^?]*)') as landing_page,
   pages_in_session,
-  logged_in,
+  --logged_in,
   source_medium,
   channel_group,
   count(distinct a.session_id) as sessions
@@ -160,6 +152,6 @@ group by
   previous_submit_location,
   landing_page,
   pages_in_session,
-  logged_in,
+  --logged_in,
   source_medium,
   channel_group
