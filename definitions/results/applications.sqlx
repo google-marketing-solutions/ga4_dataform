@@ -53,8 +53,6 @@ with applications as (
        when REGEXP_CONTAINS(event_name, 'raise') or REGEXP_CONTAINS(page_location, '\\/lana\\/bolan\\/(utoka\\-bolan)(\\/)?(\\?.*)?$') then 'Utöka'
        when REGEXP_CONTAINS(event_name, 'blanco') then event_params.loan_purpose
        end as type,
-    case
-      when REGEXP_CONTAINS(event_name, '_submit') then session_id else null end as submits,
     case 
       when REGEXP_CONTAINS(event_name, '_submit') then sum(event_params.value) else null end as event_value,
     page_location,
@@ -63,7 +61,7 @@ with applications as (
     COALESCE( 
       LAST_VALUE(
         IF(
-          event_name = 'page_view' AND NOT REGEXP_CONTAINS(page_location, '/ansok|vara-tips|kundservice|utloggad|prislista|logga-in|forsakra/forsakringserbjudande/') --Vad är villkoret för att en page_view ska vara föregående? I detta fallet att den inte innehåller ordet "ansok"
+          event_name = 'page_view' AND NOT REGEXP_CONTAINS(page_location, '/ansok|vara-tips|kundservice|utloggad|prislista|logga-in|forsakra/forsakringserbjudande/|signering|sok/|godkann-behandling-av-personuppgifter') --Vad är villkoret för att en page_view ska vara föregående? I detta fallet att den inte innehåller ordet "ansok"
         , page_location, NULL) IGNORE NULLS ) 
        OVER (PARTITION BY session_id ORDER BY event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING ) -- 
        , '(entrance)' -- Om det inte fanns nån page_view i sessionen som uppfyllde viLlkoret så defaultar vi till (entrance)
@@ -101,7 +99,7 @@ with applications as (
 sessions as (
   select
     session_start_date,
-    session_id,
+    concat(user_pseudo_id,ga_session_id) as session_id,
     pages_in_session,
     landing_page,
     --logged_in,
@@ -119,7 +117,6 @@ select
   event_name,
   event_timestamp,
   status,
-  count(distinct submits) as submits,
   sum(event_value) AS event_value,
   case 
     when event_name = 'blanco_application_submit' then 'Submit'
@@ -137,7 +134,7 @@ select
 from
   applications a
 join sessions s on a.session_id = s.session_id
-  --where s.session_id = 'W0/ssPKZJC9u8Amb/M/uynMz//MDTzl/d6GgBWL5Oyk=.17114783711716407313'
+  where a.session_id = 'zzVL8WwO1B1veicqdA36FuKpvB+428oSixjNmAKipDM=.17169220881716922087'
 group by  
   date,
   session_id,
