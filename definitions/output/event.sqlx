@@ -56,8 +56,8 @@ final as (
       and coalesce(nullif(b.collected_traffic_source.source, '(direct)'), nullif(b.collected_traffic_source.medium, '(none)'), nullif(b.collected_traffic_source.campaign, '(direct)')) is not null)[safe_offset(0)],
       a.collected_traffic_source
     ) as last_non_direct_traffic_source,
-    if(event_name = 'page_view', COALESCE(LAST_VALUE(if(event_name = 'page_view', page_location, null) IGNORE NULLS) OVER (PARTITION BY session_id ORDER BY event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)' ), null ) as previous_page_location,
-    if(event_name = 'page_view', COALESCE(FIRST_VALUE(if(event_name = 'page_view', page_location, null) IGNORE NULLS ) OVER (PARTITION BY session_id ORDER BY event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location
+    if(event_name = 'page_view', coalesce(last_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by session_id order by event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)' ), null ) as previous_page_location,
+    if(event_name = 'page_view', coalesce(first_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by session_id order by event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location
   from
     int_event as a )
 select

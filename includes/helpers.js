@@ -90,7 +90,7 @@ function groupChannels(source, medium, sourceCategory) {
                     then 'Appen'
                 when
                     ${source} = 'ica-app'
-                    then 'ICA appen'
+                    then 'ICA Appen'
                 when
                     regexp_contains(${source}, r"ica")
                     then 'ICA'
@@ -105,7 +105,7 @@ function groupChannels(source, medium, sourceCategory) {
                 when
                     regexp_contains(${source}, 'mecenat')
                     or  regexp_contains(${source}, 'studentkortet')
-                    then 'Mecenat/student'
+                    then 'Mecenat/Student'
                 when
                     regexp_contains(${medium}, r"email")
                     or regexp_contains(${source}, r"crm_banken")

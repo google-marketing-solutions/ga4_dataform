@@ -17,6 +17,7 @@ config {
     type: "table",
     schema: constants.INTERMEDIATE_DATASET,
     description: "Adds session specific metrics to the events.",
+    tags: ["all"],
     bigquery: {
         clusterBy: ["user_key", "ga_session_key"]
     }
