@@ -19,7 +19,6 @@ config {
     schema: constants.RESULTS_DATASET,
     description: "OKR for blanco, used in looker studio and tableau. Total sessions are being tracked as a session where a start event has happened and submits when a submit has happened in that same session",
     tags: ["all"],
-    disabled: false /* enable model when needed */
 }
 
 with applications as (
@@ -45,12 +44,13 @@ with applications as (
 )
 
   select
-    date as Date,
-    cast(format_date('%Y%m%d', date) as int64) as DateID, 
+    d.date as Date,
+    cast(format_date('%Y%m%d', d.date) as int64) as DateID, 
     'unsecured loan - CR submitted applications' as KPI_Name_Eng,
     count(distinct case when visited_blanco then session_id END) as Denominator,
     count(distinct case when conversions then session_id END) as Achieved_Value
   from
-    applications
+    applications a
+    right outer join ${ref('dates')} d ON a.date = d.date
   group by 
     date

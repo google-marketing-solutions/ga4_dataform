@@ -19,40 +19,7 @@ config {
     schema: constants.RESULTS_DATASET,
     description: "All events connected to applications to use in analysis or in looker reports",
     tags: ["all"],
-    disabled: false /* enable model when needed */
 }
-
-with applications as (
-  select
-    *
-  from
-    ${ref('applications')}
-  where 
-    product is not null
-),
-
-prepp as (
-  select
-    date,
-    session_id,
-    channel_group,
-    product,
-    type,
-    max(previous_submit_location) as previous_submit_location,
-    case when (event_name = 'page_view') then session_id else null end as visits,
-    case when regexp_contains(event_name, '_submit') then session_id else null end as submits,
-    max(event_value) as event_value
-  from
-    applications
-  group by
-    date,
-    session_id,
-    channel_group,
-    product,
-    type,
-    visits,
-    submits
-)
 
 select
   date,
@@ -60,11 +27,11 @@ select
   product,
   type,
   max(previous_submit_location) as previous_submit_location,
-  count(distinct visits) as visits,
-  count(distinct submits) as submits,
-  max(event_value) as event_value
+  count(distinct case when event_name = 'page_view' then session_id else null end) as visits,
+  count(distinct case when regexp_contains(event_name, 'application_subm') then session_id else null end) as submits,
+  sum(event_value) as event_value
 from
-  prepp
+  ${ref('applications')}
 --where session_id = 'zzVL8WwO1B1veicqdA36FuKpvB+428oSixjNmAKipDM=.17169220881716922087'
 group by 
   date,

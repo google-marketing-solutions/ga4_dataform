@@ -17,9 +17,8 @@
 config {
     type: "table",
     schema: constants.RESULTS_DATASET,
-    description: "Mortgage related tracking",
+    description: "All mortgage related tracking",
     tags: ["all"],
-    disabled: false /* enable model when needed */
 }
 
 with applications as (
