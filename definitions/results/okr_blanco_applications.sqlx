@@ -17,7 +17,7 @@
 config {
     type: "table",
     schema: constants.RESULTS_DATASET,
-    description: "OKR of conversion rate for mortgage, used in looker studio and tableau. Denominator will count the number of unique sessions that has vistied a specific /bolan/ page with specific conditions. Achieved_value will count the number of unique sessions where a submit event has happened within the same session",
+    description: "OKR of conversion rate for blanco, used in looker studio and tableau. Denominator will count the number of unique sessions where a start event has happened. Achieved_value will count the number of unique sessions where a submit event has happened within the same session",
     tags: ["all"],
 }
 
@@ -25,7 +25,7 @@ with applications as (
   select
     date,
     session_id,
-    LOGICAL_OR(event_name = 'page_view') as visited_blanco,
+    LOGICAL_OR(event_name = 'blanco_application_start') as visited_blanco,
     LOGICAL_OR(event_name = 'blanco_application_submit') as conversions,
     page_location,
     landing_page,
@@ -34,7 +34,7 @@ with applications as (
     ${ref('applications')}
   where
     product = 'Privatlån'
-    and regexp_contains(event_name, 'page_view|submit')
+    and regexp_contains(event_name, 'start|submit')
   group by
     date,
     session_id,
@@ -46,7 +46,7 @@ with applications as (
   select
     d.date as Date,
     cast(format_date('%Y%m%d', d.date) as int64) as DateID, 
-    'Conversion Rate Private Loan Submitted Applications (interest to submit)' as KPI_Name_Eng,
+    'Conversion Rate Private Loan Submitted Applications (start to submit)' as KPI_Name_Eng,
     count(distinct case when visited_blanco then session_id END) as Denominator,
     count(distinct case when conversions then session_id END) as Achieved_Value
   from
