@@ -28,10 +28,14 @@ with applications as (
     event_timestamp,
     event_params.step,
     case
+      when event_params.step_text = 'start' then 'Start'
+      when event_params.step_text = 'Application Start' then 'Start'
+      when event_params.step_text = 'submit' then 'Submit'
+      when event_params.step_text = 'Application Submit' then 'Submit'
+      when event_params.step_text = 'Application Sign' then 'Sign'
       when regexp_contains(event_name, '_submit') then ifnull(event_params.step_text, 'Submit') 
       when regexp_contains(event_name, '_sign') then ifnull(event_params.step_text, 'Sign')
       when regexp_contains(event_name, '_start') then ifnull(event_params.step_text, 'Start')
-      when event_params.step_text = 'start' then 'Start'
       when event_name = 'calculator_nav' then event_params.field
       else event_params.step_text end as step_text,
     case
@@ -115,7 +119,6 @@ sessions as (
     concat(user_pseudo_id,ga_session_id) as session_id,
     pages_in_session,
     landing_page,
-    --logged_in,
     concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium,
     last_non_direct_traffic_source.channel_group
   from
@@ -136,6 +139,7 @@ select
   sum(event_value) AS event_value,
   case 
     when event_name = 'blanco_application_submit' then 'Submit'
+    when regexp_contains(event_name, '_submit') and step_text = 'Kvittens' then 'Submit'
     when step is not null and step_text is not null then concat('Steg ', step, ' - ', step_text) 
   else step_text end as step,
   regexp_extract(page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
@@ -143,7 +147,6 @@ select
   regexp_extract(previous_submit_location, r'[^/]+//[^/]+(/[^?]*)') as previous_submit_location,
   regexp_extract(landing_page, r'[^/]+//[^/]+(/[^?]*)') as landing_page,
   pages_in_session,
-  --logged_in,
   source_medium,
   channel_group,
   count(distinct a.session_id) as sessions
@@ -165,6 +168,5 @@ group by
   previous_submit_location,
   landing_page,
   pages_in_session,
-  --logged_in,
   source_medium,
   channel_group
