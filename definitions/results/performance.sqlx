@@ -24,6 +24,7 @@ config {
 select
   date,
   channel_group,
+  source_medium,
   product,
   type,
   max(previous_submit_location) as previous_submit_location,
@@ -32,9 +33,11 @@ select
   sum(event_value) as event_value
 from
   ${ref('applications')}
---where session_id = 'zzVL8WwO1B1veicqdA36FuKpvB+428oSixjNmAKipDM=.17169220881716922087'
+where source_medium != 'tagassistant.google.com / referral'
+--session_id = 'zzVL8WwO1B1veicqdA36FuKpvB+428oSixjNmAKipDM=.17169220881716922087'
 group by 
   date,
   channel_group,
+  source_medium,
   product,
   type
