@@ -1,0 +1,63 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+config {
+  type: "incremental",
+  schema: constants.INTERMEDIATE_DATASET,
+  description: "Intermediate model that combines Google Ads click stats and campaign data from staging tables.",
+  tags: ["google_ads"],
+  bigquery: {
+    partitionBy: "_data_date",
+    clusterBy: ["gclid", "campaign_id", "ad_group_id"]
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(_data_date) - interval 3 day from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  );
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where _data_date >= event_date_checkpoint`)
+  }
+}
+
+with clickCampaign as (
+  select
+    cs._data_date,
+    cs.gclid as gclid,
+    cs.campaign_id as campaign_id,
+    ca.campaign_name as campaign_name,
+    cs.ad_group_id as ad_group_id,
+    row_number() over (
+      partition by gclid
+      order by cs._data_date desc
+    ) as row_num
+  from ${ref('stg_google_ads_click_stats')} as cs
+  left join ${ref('stg_google_ads_campaign')} as ca
+    using (campaign_id)
+  where cs._data_date >= event_date_checkpoint
+)
+select
+  _data_date,
+  gclid,
+  campaign_id,
+  campaign_name,
+  ad_group_id
+from clickCampaign
+where row_num = 1
