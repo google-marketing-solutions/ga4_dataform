@@ -19,7 +19,7 @@ if (constants.GADS_GET_DATA){
       type: "declaration",
       schema: constants.GADS_SOURCE_DATASET,
       ...(constants.GADS_SOURCE_PROJECT) && {database: constants.GADS_SOURCE_PROJECT},
-      name: "ads_ClickStats_" + constants.GADS_CUSTOMER_ID,
-      description: "This is the table that stores the Google Ads ads_ClickStats_customer_id export."
+      name: "ads_CampaignStats_" + constants.GADS_CUSTOMER_ID,
+      description: "This is the table that stores the Google Ads metrics."
     });
 }
