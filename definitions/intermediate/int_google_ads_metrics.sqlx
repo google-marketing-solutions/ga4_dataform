@@ -19,8 +19,7 @@ config {
   description: "Intermediate model that combines Google Ads click stats and campaign data from staging tables.",
   tags: ["all", "google_ads"],
   bigquery: {
-    partitionBy: "_data_date",
-    clusterBy: ["gclid", "campaign_id", "ad_group_id"]
+    partitionBy: "_data_date"
   }
 }
 
@@ -37,7 +36,6 @@ pre_operations {
   }
 }
 
-with clickCampaign as (
   select
     cs._data_date,
     cs.campaign_id as campaign_id,
@@ -53,13 +51,3 @@ with clickCampaign as (
     _data_date,
     campaign_id,
     campaign_name
-)
-
-select
-  _data_date,
-  gclid,
-  campaign_id,
-  campaign_name,
-  ad_group_id
-from clickCampaign
-where row_num = 1
