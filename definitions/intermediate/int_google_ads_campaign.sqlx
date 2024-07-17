@@ -17,7 +17,7 @@ config {
   type: "incremental",
   schema: constants.INTERMEDIATE_DATASET,
   description: "Intermediate model that combines Google Ads click stats and campaign data from staging tables.",
-  tags: ["google_ads"],
+  tags: ["all", "google_ads"],
   bigquery: {
     partitionBy: "_data_date",
     clusterBy: ["gclid", "campaign_id", "ad_group_id"]

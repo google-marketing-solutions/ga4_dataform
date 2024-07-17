@@ -17,7 +17,7 @@ config {
   type: "incremental",
   schema: constants.STAGING_DATASET,
   description: "Staging model for Google Ads campaigns. Basic column casting and value extractions are performed here.",
-  tags: ["google_ads"],
+  tags: ["all", "google_ads"],
   bigquery: {
     partitionBy: "_data_date",
     clusterBy: ["campaign_id"]
