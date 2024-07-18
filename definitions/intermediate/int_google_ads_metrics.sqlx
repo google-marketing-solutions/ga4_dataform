@@ -37,17 +37,6 @@ pre_operations {
 }
 
   select
-    cs._data_date,
-    cs.campaign_id as campaign_id,
-    ca.campaign_name as campaign_name,
-    SUM(cs.metrics_impressions) as impressions,
-    SUM(cs.metrics_clicks) as clicks,
-    SUM(cs.metrics_cost_micros) / 1000000 as cost
+    cs.*
   from ${ref('stg_google_ads_campaign_stats')} as cs
-  left join ${ref('stg_google_ads_campaign')} as ca
-    using (campaign_id)
   where cs._data_date >= event_date_checkpoint
-  group by 
-    _data_date,
-    campaign_id,
-    campaign_name
