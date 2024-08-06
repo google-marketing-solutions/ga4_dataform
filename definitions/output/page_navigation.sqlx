@@ -1,0 +1,44 @@
+config {
+  type: "table",
+  bigquery: {
+      partitionBy: "event_date"
+  }
+}
+
+WITH page_visits AS (
+  SELECT  
+    session_id,
+    page_location,
+    event_timestamp,
+    ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY event_timestamp) AS row_num
+  FROM
+    ${ref('event')}
+  WHERE
+    event_name = "page_view"
+)
+
+, landing_pages AS (
+  SELECT
+    session_id,
+    page_location AS landing_page,
+    LEAD(page_location, 1) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS second_page,
+    LEAD(page_location, 2) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS third_page,
+    ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY event_timestamp) AS row_num,
+    COUNT(*) OVER (PARTITION BY session_id) AS event_count
+  FROM page_visits
+)
+
+SELECT
+  landing_page AS landing_page,
+  second_page,
+  third_page,
+  COUNT(DISTINCT session_id) AS session_count,
+  SUM(event_count) AS total_event_count
+FROM landing_pages
+WHERE row_num = 1
+GROUP BY
+  landing_page,
+  second_page,
+  third_page
+ORDER BY
+  session_count DESC
