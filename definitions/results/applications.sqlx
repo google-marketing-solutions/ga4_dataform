@@ -74,7 +74,7 @@ with applications as (
       when regexp_contains(event_name, '_submit') then sum(event_params.value) else null end as event_value,
     page_location,
     previous_page_location,
-        IF(regexp_contains(event_name, 'application'), --För vilka event_name vill vi göra denna koll?
+        IF(regexp_contains(event_name, 'application|blanco_loan_protection_submit'), --För vilka event_name vill vi göra denna koll?
     COALESCE( 
       LAST_VALUE(
         IF(
@@ -91,10 +91,9 @@ with applications as (
     regexp_contains(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
     or regexp_contains(event_name, 'savings_account_application|savings_account_child_application|isk_account_application|isk_child_account_application|depot_account_application|depot_child_account_application')
     or regexp_contains(event_name, 'debit_card_application|debit_card_child_application|credit_card_application|ica_student_application|increase_card_credit_application|increase_account_credit_application|bank_account_application|ikk_application')
-    or event_name = "blanco_application_start"
+    or regexp_contains(event_name, "blanco_application")
     or regexp_contains(event_name, 'blanco_loan_protection')
-    or event_name = "blanco_application_nav"
-    or event_name = "blanco_application_submit"
+    or regexp_contains(event_name, "blanco_autogiro")
     or event_name = 'page_view'
     or event_name = 'calculator'
     or event_name = 'calculator_nav'
@@ -139,7 +138,9 @@ select
   sum(event_value) AS event_value,
   case 
     when event_name = 'blanco_application_submit' then 'Submit'
+    when event_name = 'debit_card_child_application_submit' then 'Submit'
     when regexp_contains(event_name, '_submit') and step_text = 'Kvittens' then 'Submit'
+    when event_name = 'increase_account_credit_application_subm' then 'Submit'
     when step is not null and step_text is not null then concat('Steg ', step, ' - ', step_text) 
   else step_text end as step,
   regexp_extract(page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
