@@ -28,6 +28,9 @@ with applications as (
     event_timestamp,
     event_params.step,
     case
+      when regexp_contains(event_name, 'blanco_application') then event_params.co_applicant
+      else null end as co_applicant,
+    case
       when event_params.step_text = 'start' then 'Start'
       when event_params.step_text = 'Application Start' then 'Start'
       when event_params.step_text = 'submit' then 'Submit'
@@ -84,16 +87,20 @@ with applications as (
        , '(entrance)' -- Om det inte fanns nån page_view i sessionen som uppfyllde viLlkoret så defaultar vi till (entrance)
     ),
     NULL ) 
-    AS previous_submit_location
+    AS previous_submit_location,
+    user_params.exp_name_cookie_value as exp_name_cookie_value
   from
     ${ref('event')}
   where 
     regexp_contains(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
     or regexp_contains(event_name, 'savings_account_application|savings_account_child_application|isk_account_application|isk_child_account_application|depot_account_application|depot_child_account_application')
     or regexp_contains(event_name, 'debit_card_application|debit_card_child_application|credit_card_application|ica_student_application|increase_card_credit_application|increase_account_credit_application|bank_account_application|ikk_application')
-    or regexp_contains(event_name, "blanco_application")
     or regexp_contains(event_name, 'blanco_loan_protection')
     or regexp_contains(event_name, "blanco_autogiro")
+    or event_name = 'blanco_application_start'
+    or event_name = 'blanco_application_nav'
+    or event_name = 'blanco_application_submit'
+    or event_name = 'blanco_application_sign_click'
     or event_name = 'page_view'
     or event_name = 'calculator'
     or event_name = 'calculator_nav'
@@ -104,12 +111,14 @@ with applications as (
     session_id,
     event_name,
     event_timestamp,
+    co_applicant,
     step,
     step_text,
     status,
     type,
     page_location,
-    previous_page_location
+    previous_page_location,
+    exp_name_cookie_value
 ),
 
 sessions as (
@@ -129,6 +138,7 @@ select
   a.session_id,
   product,
   type,
+  co_applicant,
   case 
     when event_name = 'ikk_application' and regexp_contains(step_text, 'signerad ansökan') then 'ikk_application_submit'
     when event_name = 'savings_account_child_application' and regexp_contains(step_text, 'signerad ansökan') then 'savings_account_child_application_submit'
@@ -142,7 +152,7 @@ select
     when regexp_contains(event_name, '_submit') and step_text = 'Kvittens' then 'Submit'
     when event_name = 'increase_account_credit_application_subm' then 'Submit'
     when step is not null and step_text is not null then concat('Steg ', step, ' - ', step_text) 
-  else step_text end as step,
+    else step_text end as step,
   regexp_extract(page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
   regexp_extract(previous_page_location, r'[^/]+//[^/]+(/[^?]*)') as previous_page_location,
   regexp_extract(previous_submit_location, r'[^/]+//[^/]+(/[^?]*)') as previous_submit_location,
@@ -150,16 +160,19 @@ select
   pages_in_session,
   source_medium,
   channel_group,
+  exp_name_cookie_value,
   count(distinct a.session_id) as sessions
 from
   applications a
 join sessions s on a.session_id = s.session_id
-  --where s.session_id = 'W0/ssPKZJC9u8Amb/M/uynMz//MDTzl/d6GgBWL5Oyk=.17114783711716407313'
+  where source_medium != 'tagassistant.google.com / referral'
+  --where s.session_id = 'AuR/vAP++YEIHdYzR1wlgDHJx//Wuch7hKb7+B3w6fQ=.17023182411702318240'
 group by  
   date,
   session_id,
   product,
   type,
+  co_applicant,
   event_name,
   event_timestamp,
   status,
@@ -170,4 +183,5 @@ group by
   landing_page,
   pages_in_session,
   source_medium,
-  channel_group
+  channel_group,
+  exp_name_cookie_value
