@@ -1,0 +1,67 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+config {
+    type: "table",
+    schema: constants.RESULTS_DATASET,
+    description: "All card related tracking",
+    tags: ["all"],
+}
+
+with applications as (
+  select
+    *
+  from
+    ${ref('applications')}
+  where
+    product = 'Privatlån'
+)
+
+  select
+    date,
+    session_id,
+    type,
+    event_name,
+    status,
+    step,
+    previous_submit_location,
+    source_medium,
+    exp_name_cookie_value,
+    co_applicant,
+    case
+      when regexp_contains(step, 'Start') then '1'
+      when regexp_contains(step, '1') then '2'
+      when regexp_contains(step, '2') then '3'
+      when regexp_contains(step, '3') then '4'
+      when regexp_contains(step, '4') then '5'
+      when regexp_contains(step, '5') then '6'
+      when regexp_contains(step, 'Submit') then '7'
+      when regexp_contains(step, 'Sign') then '8'
+  else '99' end as sort,
+    count(distinct session_id) as sessions,
+  from
+    applications
+  group by
+    date,
+    session_id,
+    type,
+    event_name,
+    status,
+    step,
+    previous_submit_location,
+    source_medium,
+    exp_name_cookie_value,
+    co_applicant
