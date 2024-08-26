@@ -25,6 +25,12 @@ select
   m._data_date,
   m.campaign_id,
   ci.campaign_name,
+  'Google Ads' as channel,
+  case
+    when regexp_contains(campaign_name, 'Gen') then 'Performance'
+    when regexp_contains(campaign_name, 'Brand') then 'Brand'
+  else null end as purpose,
+  0 as reach,
   sum(impressions) as impressions,
   sum(clicks) as clicks,
   sum(cost) as cost
