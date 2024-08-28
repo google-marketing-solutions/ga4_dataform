@@ -5,36 +5,28 @@ config {
   }
 }
 
-WITH page_visits AS (
-  SELECT  
-    session_id,
-    page_location,
-    event_timestamp,
-    ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY event_timestamp) AS row_num
-  FROM
-    ${ref('event')}
-  WHERE
-    event_name = "page_view"
-)
-
-, landing_pages AS (
+WITH landing_pages AS (
   SELECT
+    event_date as date,
     session_id,
-    page_location AS landing_page,
+    landing_page,
     LEAD(page_location, 1) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS second_page,
     LEAD(page_location, 2) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS third_page,
-    row_num
-  FROM page_visits
+  FROM 
+    ${ref('event')}
 )
 
 SELECT
-  landing_page AS landing_page,
+  date,
+  session_id,
+  landing_page,
   second_page,
   third_page,
   COUNT(DISTINCT session_id) AS session_count,
 FROM landing_pages
-WHERE row_num = 1
 GROUP BY
+  date,
+  session_id,
   landing_page,
   second_page,
   third_page

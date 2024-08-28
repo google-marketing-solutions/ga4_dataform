@@ -17,8 +17,11 @@
 config {
     type: "table",
     schema: constants.RESULTS_DATASET,
-    description: "All events connected to applications to use in analysis or in looker reports",
+    description: "All events connected to applications to use in analysis or in looker reports with focus on performance",
     tags: ["all"],
+    bigquery: {
+      partitionBy: "event_date"
+  }
 }
 
 select
@@ -34,7 +37,6 @@ select
   sum(event_value) as event_value
 from
   ${ref('applications')}
-where source_medium != 'tagassistant.google.com / referral'
 --session_id = 'zzVL8WwO1B1veicqdA36FuKpvB+428oSixjNmAKipDM=.17169220881716922087'
 group by 
   date,
