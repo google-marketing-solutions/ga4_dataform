@@ -17,8 +17,11 @@
 config {
     type: "table",
     schema: constants.RESULTS_DATASET,
-    description: "All card related tracking",
+    description: "All private loan related tracking",
     tags: ["all"],
+    bigquery: {
+      partitionBy: "event_date"
+  }
 }
 
 with applications as (

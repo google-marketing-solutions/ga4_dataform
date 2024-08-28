@@ -17,8 +17,11 @@
 config {
     type: "table",
     schema: constants.RESULTS_DATASET,
-    description: "",
+    description: "Google Ads data",
     tags: ["all"],
+    bigquery: {
+      partitionBy: "event_date"
+  }
 }
 
 select

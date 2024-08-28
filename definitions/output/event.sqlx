@@ -34,6 +34,29 @@ with int_event as (
     event_timestamp desc
 ), 
 
+page_visits as (
+  SELECT  
+    session_id,
+    page_location as landing_page,
+    event_timestamp,
+    ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY event_timestamp) AS row_num
+  FROM
+    ${ref('int_event')}
+  WHERE
+    event_name = "page_view"
+),
+
+landing_page as (
+  SELECT
+    session_id,
+    landing_page AS landing_page
+  FROM page_visits
+  WHERE row_num = 1
+  GROUP BY
+    session_id,
+    landing_page
+),
+
 final as (
   select
     a.*,
@@ -56,10 +79,14 @@ final as (
       and coalesce(nullif(b.collected_traffic_source.source, '(direct)'), nullif(b.collected_traffic_source.medium, '(none)'), nullif(b.collected_traffic_source.campaign, '(direct)')) is not null)[safe_offset(0)],
       a.collected_traffic_source
     ) as last_non_direct_traffic_source,
-    if(event_name = 'page_view', coalesce(last_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by session_id order by event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)' ), null ) as previous_page_location,
-    if(event_name = 'page_view', coalesce(first_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by session_id order by event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location
+    if(event_name = 'page_view', coalesce(last_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)' ), null ) as previous_page_location,
+    if(event_name = 'page_view', coalesce(first_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location,
+    landing_page
   from
-    int_event as a )
+    int_event as a
+  left join landing_page lp on a.session_id = lp.session_id
+)
+  
 select
   * except(last_non_direct_traffic_source),
   (select as struct
