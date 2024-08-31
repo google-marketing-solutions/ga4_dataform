@@ -19,9 +19,6 @@ config {
     schema: constants.RESULTS_DATASET,
     description: "All events connected to applications to use in analysis or in looker reports with focus on performance",
     tags: ["all"],
-    bigquery: {
-      partitionBy: "event_date"
-  }
 }
 
 select
