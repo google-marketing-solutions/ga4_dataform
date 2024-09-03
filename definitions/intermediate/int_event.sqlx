@@ -61,7 +61,7 @@ with staging as (
         as struct
             ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_source', 'stg_events', null)} as source,
             ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_medium', 'stg_events', null)} as medium,
-            ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_campaign_name', 'stg_events', when(constants.GADS_GET_DATA, 'int_google_ads_campaign.campaign_name', null))} as campaign,
+            ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_campaign_name', 'stg_events', when(constants.GADS_GET_DATA, 'int_ads_click_campaign.campaign_name', null))} as campaign,
             collected_traffic_source.manual_campaign_id as manual_campaign_id,
             collected_traffic_source.manual_campaign_name as manual_campaign_name,
             collected_traffic_source.manual_source as manual_source,
@@ -88,8 +88,8 @@ with staging as (
         --custom events sometimes miss values for traffic sources and could cause attribution errors
         --when trying to identify the first traffic source for sessions with custom event
         --that are sent with no values for source/medium on the exact same timestamp as the first session event (page_view etc...),
-        --we see an overattribution to null traffic sources.
-        ${when(constants.GADS_GET_DATA, `left join ${constants.INTERMEDIATE_DATASET}.int_google_ads_campaign as int_google_ads_campaign on stg_events.collected_traffic_source.gclid = int_google_ads_campaign.gclid`)}
+        --we see an overattribution to null traffic sources. 
+         ${when(constants.GADS_GET_DATA, `left join ${constants.INTERMEDIATE_DATASET}.int_ads_click_campaign as int_ads_click_campaign on stg_events.collected_traffic_source.gclid = int_ads_click_campaign.gclid`)}
     where event_date >= event_date_checkpoint
 )
 select
