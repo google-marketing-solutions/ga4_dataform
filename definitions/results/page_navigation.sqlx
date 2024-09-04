@@ -26,25 +26,29 @@ WITH landing_pages AS (
     event_date as date,
     session_id,
     landing_page,
-    LEAD(page_location, 1) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS second_page,
-    LEAD(page_location, 2) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS third_page,
+    page_location,
+    next_page_location,
+    LEAD(page_location, 2) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS third_page_location,
   FROM 
     ${ref('event')}
+  where event_name = 'page_view'
 )
 
 SELECT
   date,
-  session_id,
   landing_page,
-  second_page,
-  third_page,
+  page_location,
+  next_page_location,
+  --third_page_location,
   COUNT(DISTINCT session_id) AS session_count,
 FROM landing_pages
+--and landing_page = 'https://www.icabanken.se/'
+--and page_location = 'https://www.icabanken.se/'
 GROUP BY
   date,
-  session_id,
   landing_page,
-  second_page,
-  third_page
+  page_location,
+  next_page_location
+  --third_page_location
 ORDER BY
   session_count DESC
