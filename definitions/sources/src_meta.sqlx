@@ -19,5 +19,5 @@ config {
   schema: constants.FB_SOURCE_DATASET,
   ...(constants.FB_SOURCE_PROJECT) && {database: constants.FB_SOURCE_PROJECT},
   name: "meta_cost_data",
-  description: "This is the table that stores GA4 to BigQuery event exports."
+  description: ""
 }
