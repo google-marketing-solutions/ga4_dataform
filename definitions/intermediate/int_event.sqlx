@@ -89,9 +89,11 @@ with staging as (
         --when trying to identify the first traffic source for sessions with custom event
         --that are sent with no values for source/medium on the exact same timestamp as the first session event (page_view etc...),
         --we see an overattribution to null traffic sources. 
-         ${when(constants.GADS_GET_DATA, `left join ${constants.INTERMEDIATE_DATASET}.int_ads_click_campaign as int_ads_click_campaign on stg_events.collected_traffic_source.gclid = int_ads_click_campaign.gclid`)}
-    where event_date >= event_date_checkpoint
+        left join ${ref('int_google_ads_campaign')} as int_ads_click_campaign 
+        on stg_events.collected_traffic_source.gclid = int_ads_click_campaign.gclid
+        where event_date >= event_date_checkpoint
 )
+
 select
     *
 from staging

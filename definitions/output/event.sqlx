@@ -80,7 +80,8 @@ final as (
       a.collected_traffic_source
     ) as last_non_direct_traffic_source,
     if(event_name = 'page_view', coalesce(last_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)' ), null ) as previous_page_location,
-    if(event_name = 'page_view', coalesce(first_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location,
+    if(event_name = 'page_view', coalesce(first_value(if(event_name = 'page_view' and not regexp_contains(page_location, 'logga-in/utloggad'), --Vad är villkoret för att en page_view ska vara föregående? I detta fallet att den inte innehåller ordet "ansok"
+    page_location, null) ignore nulls) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location,
     landing_page
   from
     int_event as a
