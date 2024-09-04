@@ -32,6 +32,11 @@ const GADS_SOURCE_PROJECT = "ica-banken-276906"; /* your Google Ads data transfe
 const GADS_SOURCE_DATASET = "google_ads"; /* your Google Ads data transfer source dataset */
 const GADS_CUSTOMER_ID = "9918257412"; /* your Google Ads customer id, excluding the dashes (-), example "1234567890" */
 
+/* Meta Ads specific variables (optional) */
+const FB_GET_DATA = true; 
+const FB_SOURCE_PROJECT = "ica-banken-276906"; 
+const FB_SOURCE_DATASET = "media"; 
+
 module.exports = {
     SOURCE_PROJECT,
     SOURCE_DATASET,
@@ -47,5 +52,8 @@ module.exports = {
     GADS_SOURCE_DATASET,
     GADS_GET_DATA,
     GADS_CUSTOMER_ID,
+    FB_SOURCE_PROJECT,
+    FB_SOURCE_DATASET,
+    FB_GET_DATA,
     AQUISITION_EVENTS_LOOKBACK_WINDOW
 };

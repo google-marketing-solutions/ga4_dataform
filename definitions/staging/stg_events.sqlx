@@ -203,6 +203,7 @@ with
       and _table_suffix not like "%fresh%"
       and cast(_table_suffix as date format 'yyyymmdd') >= event_date_checkpoint
   )
+  
 select
   *
 from
