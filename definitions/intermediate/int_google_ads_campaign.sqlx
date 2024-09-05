@@ -20,7 +20,7 @@ config {
   tags: ["all", "google_ads"],
   bigquery: {
     partitionBy: "_data_date",
-    clusterBy: ["gclid", "campaign_id", "ad_group_id"]
+    clusterBy: ["gclid", "campaign_id"]
   }
 }
 
@@ -56,7 +56,6 @@ select
   _data_date,
   gclid,
   campaign_id,
-  campaign_name,
-  ad_group_id
+  campaign_name
 from clickCampaign
 where row_num = 1
