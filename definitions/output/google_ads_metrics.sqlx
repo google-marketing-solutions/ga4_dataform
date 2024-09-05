@@ -27,6 +27,7 @@ config {
   select
     _data_date,
     campaign_id,
+    segments_click_type as click_type,
     SUM(metrics_impressions) as impressions,
     SUM(metrics_clicks) as clicks,
     SUM(metrics_cost_micros) / 1000000 as cost
@@ -34,4 +35,5 @@ config {
     ${ref('int_google_ads_metrics')}
   group by 
     _data_date,
-    campaign_id
+    campaign_id,
+    click_type
