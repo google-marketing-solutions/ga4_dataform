@@ -25,15 +25,19 @@ config {
 }
 
   select
-    _data_date,
-    campaign_id,
+    m._data_date,
+    m.campaign_id,
+    c.campaign_name,
     segments_click_type as click_type,
     SUM(metrics_impressions) as impressions,
     SUM(metrics_clicks) as clicks,
     SUM(metrics_cost_micros) / 1000000 as cost
   from
-    ${ref('int_google_ads_metrics')}
+    ${ref('int_google_ads_metrics')} m 
+    left join ${ref('int_google_ads_campaign')} c on m.campaign_id = c.campaign_id
+    where c.campaign_name is not null
   group by 
     _data_date,
     campaign_id,
+    campaign_name,
     click_type

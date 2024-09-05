@@ -23,8 +23,9 @@ config {
 
 with impressions as (
   select
-    m._data_date,
-    m.campaign_id,
+    _data_date,
+    campaign_name
+    campaign_id,
     sum(cast(m.impressions as int64)) as impressions
   from
     ${ref('google_ads_metrics')} m
@@ -36,10 +37,11 @@ with impressions as (
 
 other_metrics as (
   select
-    m._data_date,
-    m.campaign_id,
-    sum(cast(m.clicks as int64)) as clicks,
-    sum(cast(m.cost as int64)) as cost
+    _data_date,
+    campaign_name,
+    campaign_id,
+    sum(cast(clicks as int64)) as clicks,
+    sum(cast(cost as int64)) as cost
   from
     ${ref('google_ads_metrics')} m
   group by 
@@ -48,16 +50,17 @@ other_metrics as (
  )
 
   select
-    impressions._data_date as date,
+    i._data_date as date,
     'Google Ads' as channel,
-    impressions.campaign_id,
-      /*case
-      when regexp_contains(campaign_name, 'Gen') then 'Performance'
-      when regexp_contains(campaign_name, 'Brand') then 'Brand'
-    else null end as purpose,*/
+    i.campaign_name,
+    i.campaign_id,
+    case
+      when regexp_contains(i.campaign_name, 'Gen') then 'Performance'
+      when regexp_contains(i.campaign_name, 'Brand') then 'Brand'
+    else null end as purpose,
     0 as reach,
-    impressions.impressions as impressions,
-    other_metrics.clicks as clicks,
-    other_metrics.cost as cost
-  from impressions
-  left join other_metrics on impressions.campaign_id = other_metrics.campaign_id and impressions._data_date = other_metrics._data_date
+    i.impressions as impressions,
+    m.clicks as clicks,
+    m.cost as cost
+  from impressions i
+  left join other_metrics m on impressions.campaign_id = other_metrics.campaign_id and impressions._data_date = other_metrics._data_date
