@@ -15,22 +15,23 @@
 */
 
 config {
-  type: "table",
-  schema: constants.OUTPUT_DATASET,
-  description: "",
-  tags: ["all", "google_ads"],
-  bigquery: {
-      partitionBy: "_data_date"
-  }
+    type: "table",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Google Ads table that's used for adding campaign names to metric tables",
+    tags: ["all", "google_ads"],
 }
 
+with ranked_campaigns as (
   select
-    _data_date,
+    campaign_id,
+    campaign_name,
+    gclid,
+    row_number() over (partition by campaign_id order by gclid desc) as row_num  -- Modify the ordering column as needed
+  from ${ref('int_google_ads_gclid')}
+)
+
+  select
     campaign_id,
     campaign_name
-  from
-    ${ref('int_google_ads_campaign')}
-  group by 
-    _data_date,
-    campaign_id,
-    campaign_name
+  from ranked_campaigns
+    where row_num = 1
