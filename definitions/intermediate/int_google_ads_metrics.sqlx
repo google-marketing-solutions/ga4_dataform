@@ -13,14 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 config {
-  type: "incremental",
-  schema: constants.INTERMEDIATE_DATASET,
-  description: "Intermediate model that combines Google Ads click stats and campaign data from staging tables.",
-  tags: ["all", "google_ads"],
-  bigquery: {
-    partitionBy: "_data_date"
-  }
+    type: "incremental",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model for Google Ads campaign stats as cost etc.",
+    tags: ["all", "google_ads"],
+    bigquery: {
+        partitionBy: "_data_date",
+        clusterBy: ["campaign_id"]
+    }
 }
 
 pre_operations {
@@ -37,6 +39,12 @@ pre_operations {
 }
 
   select
-    cs.*
+    cs._data_date,
+    cs.campaign_id,
+    sum(cs.metrics_clicks) as clicks,
+    sum(cs.metrics_cost_micros) / 1000000 as cost
   from ${ref('stg_google_ads_campaign_stats')} as cs
-  where cs._data_date >= event_date_checkpoint
+    where cs._data_date >= event_date_checkpoint
+  group by
+    1,
+    2
