@@ -39,11 +39,11 @@ pre_operations {
 }
 
     select
-        m._data_date,
-        m.campaign_id,
+        _data_date,
+        campaign_id,
         sum(metrics_impressions) as impressions,
     from
-        ${ref('int_google_ads_metrics')} m
+        ${ref('stg_google_ads_campaign_stats')} bcs
         where segments_click_type = 'URL_CLICKS' or segments_click_type = 'VIDEO_WEBSITE_CLICKS'
         and _data_date >= event_date_checkpoint
     group by
