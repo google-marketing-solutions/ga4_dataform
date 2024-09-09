@@ -40,7 +40,7 @@ SELECT
   page_location,
   next_page_location,
   --third_page_location,
-  COUNT(DISTINCT session_id) AS session_count,
+  COUNT(DISTINCT session_id) AS sessions,
 FROM landing_pages
 --and landing_page = 'https://www.icabanken.se/'
 --and page_location = 'https://www.icabanken.se/'
@@ -51,4 +51,4 @@ GROUP BY
   next_page_location
   --third_page_location
 ORDER BY
-  session_count DESC
+  sessions DESC
