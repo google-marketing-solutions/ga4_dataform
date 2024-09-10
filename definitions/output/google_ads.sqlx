@@ -38,9 +38,9 @@ config {
     left join ${ref('int_google_ads_metrics')} m on i.campaign_id = m.campaign_id and i._data_date = m._data_date
     left join ${ref('int_google_ads_campaign_name')} cn on cn.campaign_id = m.campaign_id
     --where cn.campaign_name is not null
-    where i.campaign_id = 21662444593
+    --where i.campaign_id = 21662444593
   group by
     date,
     platform,
-    campaign_name--,
+    campaign_name
     --campaign_id

@@ -30,7 +30,7 @@ with clickCampaign as (
       partition by gclid
       order by cs._data_date desc
     ) as row_num
-  from ${ref('stg_google_ads_click_stats')} as cs
+  from ${ref('stg_google_ads_clicks_stats')} as cs
   left join ${ref('stg_google_ads_campaign')} as ca
     using (campaign_id)
 )
