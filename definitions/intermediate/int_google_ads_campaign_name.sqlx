@@ -28,6 +28,7 @@ with ranked_campaigns as (
     gclid,
     row_number() over (partition by campaign_id order by gclid desc) as row_num  -- Modify the ordering column as needed
   from ${ref('int_google_ads_gclid')}
+  where campaign_id = 21662444593
 )
 
   select

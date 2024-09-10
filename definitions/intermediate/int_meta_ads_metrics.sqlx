@@ -13,16 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
- 
+
 config {
-  type: "incremental",
-  schema: constants.STAGING_DATASET,
-  description: "",
-  tags: ["all"],
-  bigquery: {
-    partitionBy: "Date",
-    clusterBy: ["Campaign_name"]
-  }
+    type: "incremental",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model for Google Ads campaign stats as cost etc.",
+    tags: ["all"],
+    bigquery: {
+        partitionBy: "Date",
+        clusterBy: ["Campaign_name"]
+    }
 }
 
 pre_operations {
@@ -38,20 +38,16 @@ pre_operations {
   }
 }
 
-with
-  source as (
-    select
-      Date,
-      Publisher_platform,
-      Campaign_name,
-      Impressions,
-      Cost,
-      Clicks__all_
-    from ${ref('meta_cost_data')}
+  select
+    Date as date,
+    Publisher_platform as platform,
+    Campaign_name as campaign_name,
+    sum(Impressions) as impressions,
+    sum(Cost) as cost,
+    sum(Clicks__all_) as clicks
+  from ${ref('stg_meta')} as m
     where Date >= event_date_checkpoint
-  )
-  
-select
-  *
-from
-  source
+  group by
+    1,
+    2,
+    3
