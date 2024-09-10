@@ -101,6 +101,7 @@ with applications as (
     or event_name = 'blanco_application_nav'
     or event_name = 'blanco_application_submit'
     or event_name = 'blanco_application_sign_click'
+    or event_name = 'blanco_application_signed'
     or event_name = 'page_view'
     or event_name = 'calculator'
     or event_name = 'calculator_nav'
