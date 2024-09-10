@@ -16,7 +16,7 @@
 
 config {
     type: "table",
-    schema: constants.INTERMEDIATE_DATASET,
+    schema: constants.OUTPUT_DATASET,
     description: ".",
     tags: ["all"]
 }
@@ -37,7 +37,6 @@ config {
       select * from ${ref('google_ads')} as m
     ) c
     on d.date = c.date
-    --where d.date >= event_date_checkpoint
   group by
     1,
     2,
