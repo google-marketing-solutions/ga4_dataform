@@ -25,9 +25,9 @@ with ranked_campaigns as (
   select
     campaign_id,
     campaign_name,
-    gclid,
-    row_number() over (partition by campaign_id order by gclid desc) as row_num  -- Modify the ordering column as needed
-  from ${ref('int_google_ads_gclid')}
+    _data_date,
+    row_number() over (partition by campaign_id order by _data_date desc) as row_num
+  from ${ref('stg_google_ads_campaign')}
 )
 
   select
