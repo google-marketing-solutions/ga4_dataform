@@ -42,18 +42,20 @@ with applications as (
     exp_name_cookie_value,
     co_applicant,
     case
-      when regexp_contains(step, 'Start') then '1'
-      when regexp_contains(step, '1') then '2'
-      when regexp_contains(step, '2') then '3'
-      when regexp_contains(step, '3') then '4'
-      when regexp_contains(step, '4') then '5'
-      when regexp_contains(step, '5') then '6'
-      when regexp_contains(step, 'Submit') then '7'
-      when regexp_contains(step, 'Sign') then '8'
+      when regexp_contains(step, 'Start') then 'Start'
+      when regexp_contains(step, '1') then 'Steg 1 - Frågor om lånet'
+      when regexp_contains(step, '2') then 'Steg 2 - Uppgifter om dig'
+      when regexp_contains(step, 'Uppgifter om din medsökande') then 'Steg 2.5 - Uppgifter om din medsökande'
+      when regexp_contains(step, 'Ekonomi & levnadskostnader') then 'Steg 3 - Ekonomi & levnadskostnader'
+      when regexp_contains(step, 'Syfte med lånet') then 'Steg 4 - Syfte med lånet'
+      when regexp_contains(step, 'Godkänn villkor & ansök') then 'Steg 5 - Godkänn villkor & ansök'
+      when regexp_contains(step, 'Submit') then 'Submit'
+      when event_name = 'blanco_application_sign_click' or event_name = 'blanco_application_signed' then 'Sign'
+      when event_name = 'blanco_autogiro_sign_click' then 'Autogiro sign'
   else '99' end as sort,
-    count(distinct session_id) as sessions,
   from
     applications
+  where date >= '2024-01-10'
   group by
     date,
     session_id,
