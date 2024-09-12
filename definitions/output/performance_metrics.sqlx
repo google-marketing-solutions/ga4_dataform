@@ -16,10 +16,10 @@
 config {
     type: "incremental",
     schema: constants.OUTPUT_DATASET,
-    description: "Google Ads data containing impressions, clicks and cost",
-    tags: ["all", "google_ads"],
+    description: ".",
+    tags: ["all"],
     bigquery: {
-      partitionBy: "Date"
+      partitionBy: "date"
   }
 }
 
@@ -37,20 +37,23 @@ pre_operations {
 }
 
   select
-    date,
-    INITCAP(platform) as platform,
-    campaign_name,
-    case
-      when regexp_contains(campaign_name, 'traffic') then 'Performance'
-      when regexp_contains(campaign_name, 'brand') then 'Brand'
-    else null end as purpose,
-    0 as reach,
-    sum(impressions) as impressions,
-    sum(clicks) as clicks,
-    sum(cost) as cost
-  from ${ref('int_meta_ads_metrics')} m
-  where Date >= event_date_checkpoint
-  group by
-    date,
+    d.date,
     platform,
-    campaign_name
+    campaign_name,
+    sum(reach) as reach,
+    sum(impressions) as impressions,
+    sum(cost) as cost,
+    sum(clicks) as clicks
+  from ${ref('dates')} as d
+  left join 
+    ( 
+      select * from ${ref('meta_ads')} as m 
+      union all
+      select * from ${ref('google_ads')} as m
+    ) c
+    on d.date = c.date
+    where d.date >= event_date_checkpoint
+  group by
+    1,
+    2,
+    3

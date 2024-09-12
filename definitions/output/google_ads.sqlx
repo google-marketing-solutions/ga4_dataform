@@ -19,7 +19,7 @@ config {
     description: "Google Ads data containing impressions, clicks and cost",
     tags: ["all", "google_ads"],
     bigquery: {
-      partitionBy: "Date"
+      partitionBy: "date"
   }
 }
 
@@ -35,22 +35,25 @@ pre_operations {
     `delete from ${self()} where date >= event_date_checkpoint`)
   }
 }
-
   select
-    date,
-    INITCAP(platform) as platform,
-    campaign_name,
+    i._data_date as date,
+    'Google Ads' as platform,
+    cn.campaign_name,
+    --i.campaign_id,
     case
-      when regexp_contains(campaign_name, 'traffic') then 'Performance'
-      when regexp_contains(campaign_name, 'brand') then 'Brand'
+      when regexp_contains(cn.campaign_name, 'Gen') then 'Performance'
+      when regexp_contains(cn.campaign_name, 'Brand') then 'Brand'
     else null end as purpose,
     0 as reach,
-    sum(impressions) as impressions,
-    sum(clicks) as clicks,
-    sum(cost) as cost
-  from ${ref('int_meta_ads_metrics')} m
-  where Date >= event_date_checkpoint
+    sum(i.impressions) as impressions,
+    sum(m.clicks) as clicks,
+    sum(m.cost) as cost
+  from ${ref('int_google_ads_impr')} i
+    left join ${ref('int_google_ads_metrics')} m on i.campaign_id = m.campaign_id and i._data_date = m._data_date
+    left join ${ref('int_google_ads_campaign_name')} cn on cn.campaign_id = m.campaign_id
+    where i._data_date >= event_date_checkpoint
   group by
     date,
     platform,
     campaign_name
+    --campaign_id
