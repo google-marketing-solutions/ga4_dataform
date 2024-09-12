@@ -23,14 +23,14 @@ config {
 
 WITH landing_pages AS (
   SELECT
-    event_date as date,
+    date,
     session_id,
     landing_page,
     page_location,
     next_page_location,
     LEAD(page_location, 2) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS third_page_location,
   FROM 
-    ${ref('event')}
+    ${ref('applications')}
   where event_name = 'page_view'
 )
 

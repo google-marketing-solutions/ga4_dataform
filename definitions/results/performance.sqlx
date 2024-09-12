@@ -26,7 +26,9 @@ select
   channel_group,
   source_medium,
   product,
-  type,
+  case 
+    when product != 'Privatlån' then type
+  else null end as type,
   max(previous_submit_location) as previous_submit_location,
   count(distinct case when event_name = 'page_view' then session_id else null end) as visits,
   count(distinct case when event_name = 'mortgage_indicator_nav' or event_name = 'calculator_nav' then session_id else null end) as used_calculator,

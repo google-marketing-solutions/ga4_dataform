@@ -15,12 +15,25 @@
 */
 
 config {
-  type: "table",
+  type: "incremental",
   schema: constants.OUTPUT_DATASET,
   description: "Events model, outputs one row per event, in addition to event attribution fields.",
   tags: ["all"],
   bigquery: {
       partitionBy: "event_date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(event_date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where event_date >= event_date_checkpoint`)
   }
 }
 
@@ -56,14 +69,11 @@ final as (
       and coalesce(nullif(b.collected_traffic_source.source, '(direct)'), nullif(b.collected_traffic_source.medium, '(none)'), nullif(b.collected_traffic_source.campaign, '(direct)')) is not null)[safe_offset(0)],
       a.collected_traffic_source
     ) as last_non_direct_traffic_source,
-    if(event_name = 'page_view', coalesce(last_value(if(event_name = 'page_view', page_location, null) ignore nulls ) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)' ), null ) as previous_page_location,
-    if(event_name = 'page_view', coalesce(first_value(if(event_name = 'page_view' and not regexp_contains(page_location, 'logga-in|utloggad'), --Vad är villkoret för att en page_view ska vara föregående? I detta fallet att den inte innehåller ordet "ansok"
-    page_location, null) ignore nulls) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location,
-    if(regexp_contains(event_name, '_subm'), --För vilka event_name vill vi göra denna koll?
-    coalesce(last_value(if(event_name = 'page_view' and not regexp_contains(page_location, '/ansok|vara-tips|kundservice|utloggad|prislista|logga-in|forsakra/forsakringserbjudande/|slutford-signering'), page_location, null) ignore nulls) 
-       over (partition by session_id order by event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING ), '(entrance)'), null) as previous_submit_location,
+    if(event_name = 'page_view', coalesce(last_value(if(event_name = 'page_view' and not regexp_contains(page_location, 'logga-in|utloggad'), page_location, null) ignore nulls ) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)' ), null ) as previous_page_location,
+    if(event_name = 'page_view', coalesce(first_value(if(event_name = 'page_view' and not regexp_contains(page_location, 'logga-in|utloggad'), page_location, null) ignore nulls) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location
   from
     int_event as a
+  where event_date >= event_date_checkpoint
 )
   
 select
