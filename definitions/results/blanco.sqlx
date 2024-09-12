@@ -18,7 +18,7 @@ config {
     type: "table",
     schema: constants.RESULTS_DATASET,
     description: "All private loan related tracking",
-    tags: ["all"],
+    tags: ["all"]
 }
 
 with applications as (
@@ -39,8 +39,7 @@ with applications as (
     step,
     previous_submit_location,
     source_medium,
-    exp_name_cookie_value,
-    co_applicant,
+    event_params.co_applicant as co_applicant,
     case
       when regexp_contains(step, 'Start') then 'Start'
       when regexp_contains(step, '1') then 'Steg 1 - Frågor om lånet'
@@ -65,5 +64,4 @@ with applications as (
     step,
     previous_submit_location,
     source_medium,
-    exp_name_cookie_value,
     co_applicant

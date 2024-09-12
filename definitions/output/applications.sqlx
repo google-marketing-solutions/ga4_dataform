@@ -1,0 +1,175 @@
+/**
+ * Copyright 2024 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+config {
+    type: "incremental",
+    schema: constants.OUTPUT_DATASET,
+    description: "All events with session information (source/medium, landing_page etc) connected to applications to use for analysis or in looker reports",
+    tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
+}
+
+with applications as (
+  select
+    * except (event_date, event_name),
+    event_date as date,
+    case
+      when regexp_contains(event_name, 'transfer|new|commitment|loan_promise|raise|mortgage_indicator') or regexp_contains(page_location, '\\/lana\\/bolan') or regexp_contains(page_location, '\\/lana\\/hemnetkalkyl') or regexp_contains(page_location, '\\/min-ekonomi\\/(pagaende\\-arenden\\/lanelofte|pagaende\\-arenden\\/bolan|mina\\-lan\\/mina\\-bolan)') then "Bolån"
+      when regexp_contains(event_name, 'blanco|blanco_loan_protection') or regexp_contains(page_location, '\\/(lana\\/privatlan|lan\\/privatlan)') or regexp_contains(page_location, '\\/lana\\/(blancolan|billan|batlan|energilan|laneskydd|samla\\-lan|hur\\-mycket\\-far\\-jag\\-lana|korkortslan|kokslan|lana\\-till\\-badrum)') or regexp_contains(page_location, '\\/min-ekonomi/(pagaende\\-arenden\\/privatlan|mina\\-lan\\/mina\\-privatlan)') then "Privatlån"
+      when regexp_contains(event_name, 'debit_card_application|debit_card_child_application|credit_card_application|ica_student_application|increase_card_credit_application|increase_account_credit_application|bank_account_application|ikk_application') or regexp_contains(page_location, '/kort-och-betala/(jamfor-vara-kort|bankkort|kreditkort|bankkort-barn-och-ungdom|ica-kort-med-betalfunktion|bankkonto|ungdomskonto|ica-student)') or regexp_contains(page_location, '^\\/lana\\/kontokredit') then "Kort"
+      when regexp_contains(event_name, 'savings_account_application|savings_account_child_application|isk_account_application|isk_child_account_application|depot_account_application|depot_child_account_application') or regexp_contains(page_location, '/spara/investeringssparkonto|/spara/depakonto/|/spara/sparkonto/|/spara/spara-till-barn/') then "Spara"
+    else null end as product,
+    case
+      when regexp_contains(event_name, 'transfer') or regexp_contains(page_location, '\\/lana\\/bolan\\/(flytta\\-bolan)') then 'Flytta bolån'
+      when regexp_contains(event_name, 'new') or regexp_contains(page_location, '\\/lana\\/bolan\\/(bolaneansokan)') then 'Nytt bolån'
+      when regexp_contains(event_name, 'commitment|loan_promise') or regexp_contains(page_location, '\\/lana\\/(hemnetkalkyl|bolan\\/lanelofte|bolan\\/hur\\-mycket\\-far\\-jag\\-lana)') or regexp_contains(page_location, '\\/min-ekonomi\\/(pagaende\\-arenden\\/lanelofte)')  then 'Lånelöfte'
+      when regexp_contains(event_name, 'raise') or regexp_contains(page_location, '\\/lana\\/bolan\\/(utoka\\-bolan)') then 'Utöka bolån'
+      when regexp_contains(event_name, 'blanco') then event_params.loan_purpose
+      when regexp_contains(event_name, 'debit_card_child_application') or regexp_contains(page_location, '\\/kort\\-och\\-betala\\/bankkort\\-barn\\-och\\-ungdom') then 'Bankkort barn'
+      when regexp_contains(event_name, 'debit_card_application') or regexp_contains(page_location, '\\/kort\\-och\\-betala\\/bankkort') then 'Bankkort'
+      when regexp_contains(event_name, 'increase_card_credit_application') or regexp_contains(page_location, '\\/kort\\-och\\-betala\\/kreditkort/utoka-din-kortkredit') then 'Utöka kortkredit'
+      when regexp_contains(event_name, 'credit_card_application') or regexp_contains(page_location, '\\/kort\\-och\\-betala\\/kreditkort') then 'Kreditkort'
+      when event_name = 'ikk_application' or regexp_contains(page_location, '\\/kort\\-och\\-betala\\/ica\\-kort\\-med\\-betalfunktion') then 'ICA-kort Betala'
+      when regexp_contains(event_name, 'ica_student_application') or regexp_contains(page_location, '\\/kort\\-och\\-betala\\/ica\\-student') then 'Stammis Student'
+      when regexp_contains(event_name, 'increase_account_credit_application') or regexp_contains(page_location, '\\/lana\\/kontokredit') then 'Kontokredit'
+      when regexp_contains(event_name, 'bank_account_application') or regexp_contains(page_location, '\\/kort\\-och\\-betala\\/bankkonto') then 'Bankkonto'
+      when regexp_contains(event_name, 'savings_account_application') or regexp_contains(page_location, '\\/spara\\/sparkonto') then 'Sparkonto'
+      when regexp_contains(event_name, 'savings_account_child_application') or regexp_contains(page_location, '\\/spara\\/spara\\-till\\-barn') and not regexp_contains(page_location, '\\/vara\\-tips\\/') then 'Sparkonto barn'
+      when regexp_contains(event_name, 'isk_account_application') or regexp_contains(page_location, '\\/spara\\/investeringssparkonto') then 'ISK-konto'
+      when regexp_contains(event_name, 'isk_child_account_application') or regexp_contains(page_location, '\\/spara\\/spara\\-till\\-barn') then 'ISK-konto barn'
+      when regexp_contains(event_name, 'depot_account_application') or regexp_contains(page_location, '\\/spara\\/depakonto') then 'Depåkonto'
+      when regexp_contains(event_name, 'depot_child_account_application') or regexp_contains(page_location, '\\/spara\\/spara\\-till\\-barn') then 'Depåkonto barn'
+    else null end as type,
+    case 
+      when regexp_contains(event_name, r'application') then coalesce(last_value(previous_page_location) over ( partition by session_id order by event_timestamp ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)')
+    else null end as previous_submit_location,
+    case
+      when event_params.step_text = 'start' then 'Start'
+      when event_params.step_text = 'Application Start' then 'Start'
+      when event_params.step_text = 'submit' then 'Submit'
+      when event_params.step_text = 'Application Submit' then 'Submit'
+      when event_params.step_text = 'Application Sign' then 'Sign'
+      when regexp_contains(event_name, '_submit') then ifnull(event_params.step_text, 'Submit') 
+      when regexp_contains(event_name, '_sign') then ifnull(event_params.step_text, 'Sign')
+      when regexp_contains(event_name, '_start') then ifnull(event_params.step_text, 'Start')
+      when event_name = 'calculator_nav' then event_params.field
+    else event_params.step_text end as step_text,
+    case
+      when regexp_contains(event_name, 'mortgage_application_submit') then event_params.status
+      when regexp_contains(event_name, 'savings_account_application_submit|savings_account_child_application_submit|isk_account_application_submit|isk_child_account_application_submit|depot_account_application_submit|depot_child_account_application_submit|debit_card_application_submit|debit_card_child_application_submit|credit_card_application_submit|ica_student_application_submit|increase_card_credit_application_submit|bank_account_application_submit') or (event_name = 'ikk_application' and event_params.step_text = 'signerad ansökan') then event_params.status
+      when event_name = 'blanco_application_submit' then event_params.state
+    else null end AS status,
+    case 
+      when event_name = 'ikk_application' and regexp_contains(event_params.step_text, 'signerad ansökan') then 'ikk_application_submit'
+      when event_name = 'savings_account_child_application' and regexp_contains(event_params.step_text, 'signerad ansökan') then 'savings_account_child_application_submit'
+    else event_name end as event_name,
+  from
+    ${ref('event')}
+  where 
+    event_date >= event_date_checkpoint
+    and (regexp_contains(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
+    or regexp_contains(event_name, 'savings_account_application|savings_account_child_application|isk_account_application|isk_child_account_application|depot_account_application|depot_child_account_application')
+    or regexp_contains(event_name, 'debit_card_application|debit_card_child_application|credit_card_application|ica_student_application|increase_card_credit_application|increase_account_credit_application|bank_account_application|ikk_application')
+    or regexp_contains(event_name, 'blanco_loan_protection')
+    or regexp_contains(event_name, "blanco_autogiro")
+    or event_name = 'blanco_application_start'
+    or event_name = 'blanco_application_nav'
+    or event_name = 'blanco_application_submit'
+    or event_name = 'blanco_application_sign_click'
+    or event_name = 'blanco_application_signed'
+    or event_name = 'page_view'
+    or event_name = 'calculator'
+    or event_name = 'calculator_nav'
+    or event_name = 'mortgage_indicator_nav'
+    or event_name = 'mortgage_indicator')
+    and environment = 'prod'
+),
+
+sessions as (
+  select
+    session_start_date,
+    concat(user_pseudo_id,ga_session_id) as session_id,
+    pages_in_session,
+    landing_page,
+    concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium,
+    last_non_direct_traffic_source.channel_group
+  from
+    ${ref('session')}
+)
+
+select
+  a.* except (event_previous_timestamp, event_bundle_sequence_id, event_server_timestamp_offset, user_id, user_pseudo_id, user_first_touch_timestamp, geo, app_info, is_active_user, traffic_source, stream_id, platform, ecommerce, ga_session_id, ga_session_number, engagement_time_msec, page_title, page_referrer, session_engaged, event_datetime, user_key, ga_session_key, event_traffic_source, collected_traffic_source, event_sort_order, last_non_direct_traffic_source, device, page_location, previous_page_location, next_page_location, previous_submit_location),
+  s.* except (session_id, session_start_date, landing_page),
+  device.category as device,
+  regexp_extract(page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
+  regexp_extract(previous_page_location, r'[^/]+//[^/]+(/[^?]*)') as previous_page_location,
+  regexp_extract(next_page_location, r'[^/]+//[^/]+(/[^?]*)') as next_page_location,
+  regexp_extract(previous_submit_location, r'[^/]+//[^/]+(/[^?]*)') as previous_submit_location,
+  regexp_extract(landing_page, r'[^/]+//[^/]+(/[^?]*)') as landing_page,
+  case 
+    when regexp_contains(event_name, '_subm') then sum(event_params.value) else null end as event_value,
+  case 
+    when event_name = 'blanco_application_submit' then 'Submit'
+    when event_name = 'debit_card_child_application_submit' then 'Submit'
+    when regexp_contains(event_name, '_submit') and step_text = 'Kvittens' then 'Submit'
+    when event_name = 'increase_account_credit_application_subm' then 'Submit'
+    when event_params.step is not null and event_params.step_text is not null then concat('Steg ', event_params.step, ' - ', event_params.step_text) 
+    else event_params.step_text end as step,
+from
+  applications a
+join sessions s on a.session_id = s.session_id
+  where source_medium != 'tagassistant.google.com / referral'
+  --and event_date = '2024-09-09'
+  --and product = 'Spara'
+  --and event_name = 'page_view'
+  --and a.session_id = 'f3lFJcaPksEfak/I9VQ8AnYma7zbIdz8l3F5EqXOApc=.17258917341725891733'
+group by  
+  date,
+  device,
+  page_location,
+  a.session_id,
+  internal_traffic,
+  environment,
+  event_params,
+  user_params,
+  event_timestamp,
+  previous_page_location,
+  next_page_location,
+  product,
+  type,
+  previous_submit_location,
+  step_text,
+  status,
+  event_name,
+  pages_in_session,
+  landing_page,
+  source_medium,
+  channel_group
