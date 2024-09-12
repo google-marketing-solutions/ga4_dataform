@@ -42,6 +42,8 @@ with int_event as (
     *
   from
     ${ref('int_event')}
+  where 
+    event_date >= event_date_checkpoint
   order by
     user_key,
     event_timestamp desc
@@ -73,7 +75,6 @@ final as (
     if(event_name = 'page_view', coalesce(first_value(if(event_name = 'page_view' and not regexp_contains(page_location, 'logga-in|utloggad'), page_location, null) ignore nulls) over (partition by a.session_id order by event_timestamp ASC ROWS BETWEEN 1 FOLLOWING AND UNBOUNDED FOLLOWING ), '(exit)' ), null ) as next_page_location
   from
     int_event as a
-  where event_date >= event_date_checkpoint
 )
   
 select
