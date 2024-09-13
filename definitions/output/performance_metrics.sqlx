@@ -40,6 +40,7 @@ pre_operations {
     d.date,
     platform,
     campaign_name,
+    purpose,
     sum(reach) as reach,
     sum(impressions) as impressions,
     sum(cost) as cost,
@@ -56,4 +57,5 @@ pre_operations {
   group by
     1,
     2,
-    3
+    3,
+    4
