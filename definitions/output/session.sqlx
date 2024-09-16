@@ -28,13 +28,13 @@ config {
 pre_operations {
   declare event_date_checkpoint default (
     ${when(incremental(),
-      `select max(event_date) -3 from ${self()}`,
+      `select max(session_start_date) -3 from ${self()}`,
       `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
     }
   )
   ---
   ${when(incremental(),
-    `delete from ${self()} where event_date >= event_date_checkpoint`)
+    `delete from ${self()} where session_start_date >= event_date_checkpoint`)
   }
 }
 
