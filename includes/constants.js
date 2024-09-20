@@ -35,7 +35,7 @@ const GADS_CUSTOMER_ID = "9918257412"; /* your Google Ads customer id, excluding
 /* Meta Ads specific variables (optional) */
 const FB_GET_DATA = true; 
 const FB_SOURCE_PROJECT = "ica-banken-276906"; 
-const FB_SOURCE_DATASET = "media"; 
+const FB_SOURCE_DATASET = "platform_data"; 
 
 module.exports = {
     SOURCE_PROJECT,
