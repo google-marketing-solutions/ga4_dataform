@@ -68,9 +68,22 @@ with applications as (
       when regexp_contains(event_name, 'depot_account_application') or regexp_contains(page_location, '\\/spara\\/depakonto') then 'Depåkonto'
       when regexp_contains(event_name, 'depot_child_account_application') or regexp_contains(page_location, '\\/spara\\/spara\\-till\\-barn') then 'Depåkonto barn'
     else null end as type,
-    case 
-      when regexp_contains(event_name, r'application') then coalesce(last_value(previous_page_location) over ( partition by session_id order by event_timestamp ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), '(entrance)')
-    else null end as previous_submit_location,
+    case
+      when regexp_contains(event_name, 'application_start') then
+      last_value(case 
+        when event_name = 'page_view' then 
+        previous_page_location 
+        end 
+        ignore nulls)
+      over (
+        partition by session_id 
+        order by event_timestamp
+        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+      )
+      else null
+    end as previous_start_location,
+    first_value(case when regexp_contains(event_name, 'application_start') then event_timestamp end ignore nulls)
+    over (partition by session_id order by event_timestamp) as application_start_time,
     case
       when event_params.step_text = 'start' then 'Start'
       when event_params.step_text = 'Application Start' then 'Start'
@@ -111,6 +124,26 @@ with applications as (
     or event_name = 'mortgage_indicator_nav'
     or event_name = 'mortgage_indicator')
     and environment = 'prod'
+    and not regexp_contains(page_location, 'sandbox')
+),
+
+applications_final as (
+  select
+  * except (event_previous_timestamp, event_bundle_sequence_id, event_server_timestamp_offset, user_id, user_pseudo_id, user_first_touch_timestamp, geo, app_info, is_active_user, traffic_source, stream_id, platform, ecommerce, ga_session_id, ga_session_number, engagement_time_msec, page_title, page_referrer, session_engaged, event_datetime, user_key, ga_session_key, event_traffic_source, collected_traffic_source, event_sort_order, last_non_direct_traffic_source, device, previous_start_location, application_start_time),
+  device.category as device,
+  case
+   when regexp_contains(event_name, 'application') then 
+   first_value(
+    case 
+      when regexp_contains(event_name, 'application_start') then 
+      case
+        when previous_start_location = '(entrance)' or previous_start_location = '/lana/privatlan/ansok-om-lan/' then 'Landade i ansökningsflödet'
+        else previous_start_location end end ignore nulls)
+    over (partition by session_id order by event_timestamp) else null end as previous_submit_location,
+  /*case
+   when regexp_contains(event_name, 'application') then first_value(case when regexp_contains(event_name, 'application_start') then previous_start_location end ignore nulls)
+    over (partition by session_id order by event_timestamp) else null end as previous_submit_location,*/
+  from applications
 ),
 
 sessions as (
@@ -126,31 +159,29 @@ sessions as (
 )
 
 select
-  a.* except (event_previous_timestamp, event_bundle_sequence_id, event_server_timestamp_offset, user_id, user_pseudo_id, user_first_touch_timestamp, geo, app_info, is_active_user, traffic_source, stream_id, platform, ecommerce, ga_session_id, ga_session_number, engagement_time_msec, page_title, page_referrer, session_engaged, event_datetime, user_key, ga_session_key, event_traffic_source, collected_traffic_source, event_sort_order, last_non_direct_traffic_source, device, page_location, previous_page_location, next_page_location, previous_submit_location),
+  a.*,
   s.* except (session_id, session_start_date, landing_page),
-  device.category as device,
-  regexp_extract(page_location, r'[^/]+//[^/]+(/[^?]*)') as page_location,
-  regexp_extract(previous_page_location, r'[^/]+//[^/]+(/[^?]*)') as previous_page_location,
-  regexp_extract(next_page_location, r'[^/]+//[^/]+(/[^?]*)') as next_page_location,
-  regexp_extract(previous_submit_location, r'[^/]+//[^/]+(/[^?]*)') as previous_submit_location,
   regexp_extract(landing_page, r'[^/]+//[^/]+(/[^?]*)') as landing_page,
+  /*case
+    when previous_submit_location = '(entrance)' or previous_submit_location = '/lana/privatlan/ansok-om-lan/' then 'Landade på ansökan'
+    else previous_submit_location end as previous_submit_location,*/
   case 
-    when regexp_contains(event_name, '_subm') then sum(event_params.value) else null end as event_value,
+    when regexp_contains(a.event_name, '_subm') then sum(a.event_params.value) else null end as event_value,
   case 
-    when event_name = 'blanco_application_submit' then 'Submit'
-    when event_name = 'debit_card_child_application_submit' then 'Submit'
-    when regexp_contains(event_name, '_submit') and step_text = 'Kvittens' then 'Submit'
-    when event_name = 'increase_account_credit_application_subm' then 'Submit'
-    when event_params.step is not null and event_params.step_text is not null then concat('Steg ', event_params.step, ' - ', event_params.step_text) 
-    else event_params.step_text end as step,
+    when a.event_name = 'blanco_application_submit' then 'Submit'
+    when a.event_name = 'debit_card_child_application_submit' then 'Submit'
+    when regexp_contains(a.event_name, '_submit') and a.step_text = 'Kvittens' then 'Submit'
+    when a.event_name = 'increase_account_credit_application_subm' then 'Submit'
+    when a.event_params.step is not null and a.event_params.step_text is not null then concat('Steg ', a.event_params.step, ' - ', a.event_params.step_text) 
+    else a.event_params.step_text end as step,
 from
-  applications a
-join sessions s on a.session_id = s.session_id
+  applications_final a
+  join sessions s on a.session_id = s.session_id
   where source_medium != 'tagassistant.google.com / referral'
   --and event_date = '2024-09-09'
   --and product = 'Spara'
   --and event_name = 'page_view'
-  --and a.session_id = 'f3lFJcaPksEfak/I9VQ8AnYma7zbIdz8l3F5EqXOApc=.17258917341725891733'
+  --and a.session_id = '4uGW7tsDpQOo9zwWyo6b/h8MOn5tRATaIlcabonz1+c=.17066000081706600007'
 group by  
   date,
   device,
@@ -165,11 +196,11 @@ group by
   next_page_location,
   product,
   type,
-  previous_submit_location,
   step_text,
   status,
   event_name,
   pages_in_session,
   landing_page,
   source_medium,
-  channel_group
+  channel_group,
+  previous_submit_location
