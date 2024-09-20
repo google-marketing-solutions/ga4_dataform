@@ -30,7 +30,7 @@ select
     when product != 'Privatlån' then type
   else null end as type,
   max(previous_submit_location) as previous_submit_location,
-  count(distinct case when event_name = 'page_view' then session_id else null end) as visits,
+  count(distinct case when event_name = 'page_view' and not regexp_contains(page_location, 'ansokan-|ansok-|slutford-signering') then session_id else null end) as visits,
   count(distinct case when event_name = 'mortgage_indicator_nav' or event_name = 'calculator_nav' then session_id else null end) as used_calculator,
   count(distinct case when regexp_contains(event_name, 'application_subm') then session_id else null end) as submits,
   sum(event_value) as event_value
