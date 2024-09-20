@@ -46,7 +46,8 @@ with
       Campaign_name,
       Impressions,
       Cost,
-      Clicks__all_
+      Clicks__all_,
+      Reach
     from ${ref('meta_data')}
     where Date >= event_date_checkpoint
   )
