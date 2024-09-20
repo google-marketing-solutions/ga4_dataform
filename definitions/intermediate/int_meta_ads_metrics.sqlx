@@ -42,6 +42,7 @@ pre_operations {
     Date as date,
     Publisher_platform as platform,
     Campaign_name as campaign_name,
+    sum(Reach) as reach,
     sum(Impressions) as impressions,
     sum(Cost) as cost,
     sum(Clicks__all_) as clicks

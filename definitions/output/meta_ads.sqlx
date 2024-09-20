@@ -44,7 +44,7 @@ pre_operations {
       when regexp_contains(campaign_name, 'traffic') then 'Performance'
       when regexp_contains(campaign_name, 'brand') then 'Brand'
     else null end as purpose,
-    0 as reach,
+    sum(reach) as reach,
     sum(impressions) as impressions,
     sum(clicks) as clicks,
     sum(cost) as cost
