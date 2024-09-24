@@ -47,7 +47,7 @@ with applications as (
     d.date as Date,
     cast(format_date('%Y%m%d', d.date) as int64) as DateID, 
     'Conversion Rate Mortgage Submitted Applications (interest to submit)' as KPI_Name_Eng,
-    count(distinct case when visited_mortgage and not (regexp_contains(landing_page, '/bolan/') and not regexp_contains(source_medium, 'appen|email')) then session_id END) as Denominator,
+    count(distinct case when visited_mortgage and not (regexp_contains(landing_page, '/bolan/|hemnetkalkyl') and not regexp_contains(source_medium, 'appen|email')) then session_id END) as Denominator,
     count(distinct case when conversions and not (regexp_contains(landing_page, '/bolan/') and not regexp_contains(source_medium, 'appen|email')) then session_id END) as Achieved_Value
   from
     applications a
