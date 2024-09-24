@@ -13,51 +13,40 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 config {
     type: "incremental",
-    schema: constants.OUTPUT_DATASET,
-    description: ".",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model for Google Ads campaign stats as cost etc.",
     tags: ["all"],
     bigquery: {
-      partitionBy: "date"
-  }
+        partitionBy: "Date",
+        clusterBy: ["Campaign_name"]
+    }
 }
 
 pre_operations {
   declare event_date_checkpoint default (
     ${when(incremental(),
-      `select max(date) -3 from ${self()}`,
+      `select max(Date) - interval 3 day from ${self()}`,
       `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
     }
-  )
+  );
   ---
   ${when(incremental(),
-    `delete from ${self()} where date >= event_date_checkpoint`)
+    `delete from ${self()} where Date >= event_date_checkpoint`)
   }
 }
 
   select
-    d.date,
-    platform,
-    campaign_name,
-    purpose,
-    sum(reach) as reach,
-    sum(impressions) as impressions,
-    sum(cost) as cost,
-    sum(clicks) as clicks
-  from ${ref('dates')} as d
-  left join 
-    ( 
-      select * from ${ref('meta_ads')} as m 
-      union all
-      select * from ${ref('google_ads')} as g
-      union all
-      select * from ${ref('snapchat_ads')} as s
-    ) c
-    on d.date = c.date
-    where d.date >= event_date_checkpoint
+    Date as date,
+    Campaign_name as campaign_name,
+    sum(Unique_impressions) as reach,
+    sum(Impressions) as impressions,
+    sum(Cost) as cost,
+    sum(Swipes) as clicks
+  from ${ref('stg_snapchat')} as s
+    where Date >= event_date_checkpoint
   group by
     1,
-    2,
-    3,
-    4
+    2

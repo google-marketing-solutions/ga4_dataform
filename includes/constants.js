@@ -37,6 +37,12 @@ const FB_GET_DATA = true;
 const FB_SOURCE_PROJECT = "ica-banken-276906"; 
 const FB_SOURCE_DATASET = "platform_data"; 
 
+/* Snapchat Ads specific variables (optional) */
+const SC_GET_DATA = true; 
+const SC_SOURCE_PROJECT = "ica-banken-276906"; 
+const SC_SOURCE_DATASET = "platform_data"; 
+
+
 module.exports = {
     SOURCE_PROJECT,
     SOURCE_DATASET,
@@ -55,5 +61,8 @@ module.exports = {
     FB_SOURCE_PROJECT,
     FB_SOURCE_DATASET,
     FB_GET_DATA,
+    SC_SOURCE_PROJECT,
+    SC_SOURCE_DATASET,
+    SC_GET_DATA,
     AQUISITION_EVENTS_LOOKBACK_WINDOW
 };

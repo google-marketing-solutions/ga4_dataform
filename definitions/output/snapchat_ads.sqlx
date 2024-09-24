@@ -16,10 +16,10 @@
 config {
     type: "incremental",
     schema: constants.OUTPUT_DATASET,
-    description: ".",
-    tags: ["all"],
+    description: "Google Ads data containing impressions, clicks and cost",
+    tags: ["all", "google_ads"],
     bigquery: {
-      partitionBy: "date"
+      partitionBy: "Date"
   }
 }
 
@@ -37,27 +37,20 @@ pre_operations {
 }
 
   select
-    d.date,
-    platform,
+    date,
+    'Snapchat' as platform,
     campaign_name,
-    purpose,
+    case
+      when regexp_contains(campaign_name, 'traffic') then 'Performance'
+      when regexp_contains(campaign_name, 'brand') then 'Brand'
+    else null end as purpose,
     sum(reach) as reach,
     sum(impressions) as impressions,
-    sum(cost) as cost,
-    sum(clicks) as clicks
-  from ${ref('dates')} as d
-  left join 
-    ( 
-      select * from ${ref('meta_ads')} as m 
-      union all
-      select * from ${ref('google_ads')} as g
-      union all
-      select * from ${ref('snapchat_ads')} as s
-    ) c
-    on d.date = c.date
-    where d.date >= event_date_checkpoint
+    sum(clicks) as clicks,
+    sum(cost) as cost
+  from ${ref('int_snapchat_ads_metrics')} m
+  where Date >= event_date_checkpoint
   group by
-    1,
-    2,
-    3,
-    4
+    date,
+    platform,
+    campaign_name
