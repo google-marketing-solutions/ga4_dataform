@@ -15,10 +15,26 @@
  */
 
 config {
-    type: "table",
+    type: "incremental",
     schema: constants.RESULTS_DATASET,
     description: "All private loan related tracking",
-    tags: ["all"]
+    tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
 }
 
 with applications as (
@@ -27,7 +43,8 @@ with applications as (
   from
     ${ref('applications')}
   where
-    product = 'Privatlån'
+    date >= event_date_checkpoint
+    and product = 'Privatlån'
 )
 
   select
@@ -36,6 +53,7 @@ with applications as (
     type,
     event_name,
     status,
+    pages_in_session,
     step,
     previous_submit_location,
     source_medium,
@@ -61,6 +79,7 @@ with applications as (
     type,
     event_name,
     status,
+    pages_in_session,
     step,
     previous_submit_location,
     source_medium,
