@@ -1,54 +1,51 @@
-/**
- * Copyright 2024 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 config {
-    type: "table",
+    type: "incremental",
     schema: constants.RESULTS_DATASET,
     description: "",
     tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
 }
 
-WITH landing_pages AS (
-  SELECT
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
+}
+
+with landing_pages as (
+  select
     date,
     session_id,
     landing_page,
     page_location,
-    next_page_location,
-    LEAD(page_location, 2) OVER (PARTITION BY session_id ORDER BY event_timestamp) AS third_page_location,
-  FROM 
+    next_page_location
+  from
     ${ref('applications')}
-  where event_name = 'page_view'
+  where
+    date >= event_date_checkpoint
+    and event_name = 'page_view'
 )
 
-SELECT
+select
   date,
   landing_page,
   page_location,
   next_page_location,
-  --third_page_location,
-  COUNT(DISTINCT session_id) AS sessions,
-FROM landing_pages
+  count(distinct session_id) AS sessions,
+from landing_pages
 --and landing_page = 'https://www.icabanken.se/'
 --and page_location = 'https://www.icabanken.se/'
-GROUP BY
+group by
   date,
   landing_page,
   page_location,
   next_page_location
-  --third_page_location
-ORDER BY
-  sessions DESC
