@@ -54,9 +54,11 @@ with applications as (
       when event_name = 'blanco_application_sign_click' or event_name = 'blanco_application_signed' then 'Sign'
       when event_name = 'blanco_autogiro_sign_click' then 'Autogiro sign'
   else '99' end as sort,
+  sum(event_value) as event_value
   from
     applications
-  where date >= '2024-01-10'
+  where 
+  date >= '2024-01-10'
   group by
     date,
     session_id,
