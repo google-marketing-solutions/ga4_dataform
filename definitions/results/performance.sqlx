@@ -15,31 +15,63 @@
  */
 
 config {
-    type: "table",
+    type: "incremental",
     schema: constants.RESULTS_DATASET,
     description: "All events connected to applications to use in analysis or in looker reports with focus on performance",
     tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
 }
 
 select
   date,
+  session_id,
   channel_group,
   source_medium,
   product,
   case 
     when product != 'Privatlån' then type
   else null end as type,
-  max(previous_submit_location) as previous_submit_location,
-  count(distinct case when event_name = 'page_view' and not regexp_contains(page_location, 'ansokan-|ansok-|slutford-signering') then session_id else null end) as visits,
-  count(distinct case when event_name = 'mortgage_indicator_nav' or event_name = 'calculator_nav' then session_id else null end) as used_calculator,
-  count(distinct case when regexp_contains(event_name, 'application_subm') then session_id else null end) as submits,
+  previous_submit_location,
+  status,
+  case when event_name = 'page_view' and not regexp_contains(page_location, 'ansokan-|ansok-|slutford-signering') then session_id else null end as visits,
+  case when event_name = 'mortgage_indicator_nav' or event_name = 'calculator_nav' then session_id else null end as used_calculator,
+  case when regexp_contains(event_name, 'application_subm') then session_id else null end as submits,
+  case when regexp_contains(event_name, 'application_subm') and status = 'AdditionalInformationNeeded' then session_id else null end as submits_approved,
+  case when regexp_contains(event_name, 'application_subm') and status = 'Review' then session_id else null end as submits_review,
+  case when regexp_contains(event_name, 'application_subm') and status = 'Rejected' then session_id else null end as submits_rejected,
   sum(event_value) as event_value
 from
   ${ref('applications')}
+where 
+  date >= event_date_checkpoint
 --session_id = 'zzVL8WwO1B1veicqdA36FuKpvB+428oSixjNmAKipDM=.17169220881716922087'
 group by 
   date,
+  session_id,
   channel_group,
   source_medium,
   product,
-  type
+  type,
+  previous_submit_location,
+  status,
+  visits,
+  used_calculator,
+  submits,
+  submits_approved,
+  submits_review,
+  submits_rejected
