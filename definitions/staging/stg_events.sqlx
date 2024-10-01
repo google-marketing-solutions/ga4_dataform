@@ -77,11 +77,11 @@ with
       (
       select
         as struct collected_traffic_source.manual_campaign_id as manual_campaign_id,
-        lower(collected_traffic_source.manual_campaign_name) as manual_campaign_name,
-        lower(collected_traffic_source.manual_source) as manual_source,
-        lower(collected_traffic_source.manual_medium) as manual_medium,
-        lower(collected_traffic_source.manual_content) as manual_content,
-        lower(collected_traffic_source.manual_term) as manual_term,
+        LOWER(ARRAY_TO_STRING(collected_traffic_source.manual_campaign_name, ',')) as manual_campaign_name,
+        LOWER(ARRAY_TO_STRING(collected_traffic_source.manual_source, ',')) as manual_source,
+        LOWER(ARRAY_TO_STRING(collected_traffic_source.manual_medium, ',')) as manual_medium,
+        LOWER(ARRAY_TO_STRING(collected_traffic_source.manual_content, ',')) as manual_content,
+        LOWER(ARRAY_TO_STRING(collected_traffic_source.manual_term, ',')) as manual_term,
         collected_traffic_source.gclid as gclid,
         collected_traffic_source.dclid as dclid
       ) as collected_traffic_source,

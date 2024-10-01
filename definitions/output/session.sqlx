@@ -64,8 +64,8 @@ with session_first_last_source as (
 , get_last_non_direct_traffic_source as (
   select
     a.*,
-    b.session_start_datetime,
-    date(b.session_start_datetime) as session_start_date,
+    b.user_first_visit_datetime as session_start_datetime,
+    date(b.user_first_visit_datetime) as session_start_date,
     b.has_session_start_event,
     b.session_engaged,
     b.engagement_time_seconds,
