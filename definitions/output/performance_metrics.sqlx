@@ -41,6 +41,7 @@ pre_operations {
     platform,
     campaign_name,
     purpose,
+    product,
     sum(reach) as reach,
     sum(impressions) as impressions,
     sum(cost) as cost,
@@ -60,4 +61,5 @@ pre_operations {
     1,
     2,
     3,
-    4
+    4,
+    5

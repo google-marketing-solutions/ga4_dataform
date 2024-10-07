@@ -42,6 +42,8 @@ select
   session_id,
   channel_group,
   source_medium,
+  campaign,
+  term,
   product,
   case 
     when product != 'Privatlån' then type
@@ -60,12 +62,15 @@ from
   ${ref('applications')}
 where 
   date >= event_date_checkpoint
+  --date = '2024-09-09'
   --session_id = 'zYGq+5AsAU/Aoy5/DnXD8dRVb91/B9HcujTtZmQutAk=.17262937381726293736'
 group by 
   date,
   session_id,
   channel_group,
   source_medium,
+  campaign,
+  term,
   product,
   type,
   previous_submit_location,

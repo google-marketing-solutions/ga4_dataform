@@ -44,6 +44,12 @@ pre_operations {
       when regexp_contains(campaign_name, 'traffic') then 'Performance'
       when regexp_contains(campaign_name, 'brand') then 'Brand'
     else null end as purpose,
+    case
+      when regexp_contains(campaign_name, 'privatlan|Privatlån') then 'Privatlån'
+      when regexp_contains(campaign_name, 'bolan|Bolån') then 'Bolån'
+      when regexp_contains(campaign_name, 'kort|Kort') then 'Kort'
+      when regexp_contains(campaign_name, 'spara|Spara') then 'Spara'
+    else null end as product,
     sum(reach) as reach,
     sum(impressions) as impressions,
     sum(clicks) as clicks,
