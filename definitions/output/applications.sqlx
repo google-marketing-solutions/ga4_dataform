@@ -153,7 +153,9 @@ sessions as (
     pages_in_session,
     landing_page,
     concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium,
-    last_non_direct_traffic_source.channel_group
+    last_non_direct_traffic_source.channel_group,
+    last_non_direct_traffic_source.campaign,
+    last_non_direct_traffic_source.term
   from
     ${ref('session')}
 )
@@ -203,4 +205,6 @@ group by
   landing_page,
   source_medium,
   channel_group,
+  campaign,
+  term,
   previous_submit_location
