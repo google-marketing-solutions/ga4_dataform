@@ -5,7 +5,7 @@ config {
   tags: ["all"],
   bigquery: {
     partitionBy: "Date",
-    clusterBy: ["Campaign_name"]
+    clusterBy: ["Campaign"]
   }
 }
 
@@ -26,13 +26,13 @@ with
   source as (
     select
       Date,
-      Campaign_name,
-      Impressions,
+      Campaign,
+      Tracked_ads,
       Cost,
-      Swipes,
-      Unique_impressions
-    from ${ref('snapchat_data')}
-    where Date >= event_date_checkpoint
+      Clicks,
+      Unique_tracked_ads
+    from ${ref('adform_data')}
+    --where Date >= event_date_checkpoint
   )
   
 select
