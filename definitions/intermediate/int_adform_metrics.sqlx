@@ -1,7 +1,7 @@
 config {
     type: "incremental",
     schema: constants.INTERMEDIATE_DATASET,
-    description: "Intermediate model for Snapchat Ads campaign stats as cost etc.",
+    description: "Intermediate model for Adform campaign stats as cost etc.",
     tags: ["all"],
     bigquery: {
         partitionBy: "Date",
@@ -24,12 +24,12 @@ pre_operations {
 
   select
     Date as date,
-    Campaign_name as campaign_name,
-    sum(Unique_impressions) as reach,
-    sum(Impressions) as impressions,
+    Campaign as campaign_name,
+    sum(Unique_tracked_ads) as reach,
+    sum(Tracked_ads) as impressions,
     sum(Cost) as cost,
-    sum(Swipes) as clicks
-  from ${ref('stg_snapchat')} as s
+    sum(Clicks) as clicks
+  from ${ref('stg_adform')} as s
   where 
     Date >= event_date_checkpoint
   group by

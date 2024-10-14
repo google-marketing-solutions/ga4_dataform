@@ -1,7 +1,7 @@
 config {
     type: "incremental",
     schema: constants.OUTPUT_DATASET,
-    description: "Meta Ads data containing reach, impressions, clicks and cost",
+    description: "Adform data containing reach, impressions, clicks and cost",
     tags: ["all"],
     bigquery: {
       partitionBy: "Date"
@@ -23,7 +23,7 @@ pre_operations {
 
   select
     date,
-    INITCAP(platform) as platform,
+    'Adform' as platform,
     campaign_name,
     case
       when regexp_contains(campaign_name, 'traffic') then 'Performance'
@@ -39,7 +39,7 @@ pre_operations {
     sum(impressions) as impressions,
     sum(clicks) as clicks,
     sum(cost) as cost
-  from ${ref('int_meta_ads_metrics')} m
+  from ${ref('int_adform_metrics')} a
   where Date >= event_date_checkpoint
   group by
     date,

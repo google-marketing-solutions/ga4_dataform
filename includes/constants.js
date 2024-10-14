@@ -42,6 +42,11 @@ const SC_GET_DATA = true;
 const SC_SOURCE_PROJECT = "ica-banken-276906"; 
 const SC_SOURCE_DATASET = "platform_data"; 
 
+/* Adform specific variables (optional) */
+const AF_GET_DATA = true; 
+const AF_SOURCE_PROJECT = "ica-banken-276906"; 
+const AF_SOURCE_DATASET = "platform_data"; 
+
 
 module.exports = {
     SOURCE_PROJECT,
@@ -64,5 +69,8 @@ module.exports = {
     SC_SOURCE_PROJECT,
     SC_SOURCE_DATASET,
     SC_GET_DATA,
+    AF_SOURCE_PROJECT,
+    AF_SOURCE_DATASET,
+    AF_GET_DATA,
     AQUISITION_EVENTS_LOOKBACK_WINDOW
 };
