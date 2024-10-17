@@ -42,6 +42,8 @@ pre_operations {
       select * from ${ref('snapchat_ads')} as s
       union all
       select * from ${ref('adform')} as a
+      union all
+      select * from ${ref('bing_ads')} as b
     ) c
     on d.date = c.date
   where 

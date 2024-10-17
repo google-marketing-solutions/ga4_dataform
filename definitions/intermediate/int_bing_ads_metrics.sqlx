@@ -1,0 +1,36 @@
+config {
+    type: "incremental",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model for Snapchat Ads campaign stats as cost etc.",
+    tags: ["all"],
+    bigquery: {
+        partitionBy: "Date",
+        clusterBy: ["Campaign_name"]
+    }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(Date) - interval 3 day from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  );
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where Date >= event_date_checkpoint`)
+  }
+}
+
+  select
+    Date as date,
+    Campaign_name as campaign_name,
+    sum(Impressions) as impressions,
+    sum(Cost) as cost,
+    sum(Clicks) as clicks
+  from ${ref('stg_bing')} as b
+  where 
+    Date >= event_date_checkpoint
+  group by
+    1,
+    2

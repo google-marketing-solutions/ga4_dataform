@@ -47,6 +47,11 @@ const AF_GET_DATA = true;
 const AF_SOURCE_PROJECT = "ica-banken-276906"; 
 const AF_SOURCE_DATASET = "platform_data"; 
 
+/* Bing specific variables (optional) */
+const B_GET_DATA = true; 
+const B_SOURCE_PROJECT = "ica-banken-276906"; 
+const B_SOURCE_DATASET = "platform_data"; 
+
 
 module.exports = {
     SOURCE_PROJECT,
@@ -72,5 +77,8 @@ module.exports = {
     AF_SOURCE_PROJECT,
     AF_SOURCE_DATASET,
     AF_GET_DATA,
+    B_SOURCE_PROJECT,
+    B_SOURCE_DATASET,
+    B_GET_DATA,
     AQUISITION_EVENTS_LOOKBACK_WINDOW
 };

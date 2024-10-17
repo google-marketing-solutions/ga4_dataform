@@ -46,7 +46,8 @@ pre_operations {
     sum(clicks) as clicks,
     sum(cost) as cost
   from ${ref('int_adform_metrics')} a
-  where Date >= event_date_checkpoint
+  where 
+    Date >= event_date_checkpoint
   group by
     date,
     platform,
