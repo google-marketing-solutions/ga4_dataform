@@ -32,7 +32,8 @@ with
       Clicks,
       Unique_tracked_ads
     from ${ref('adform_data')}
-    --where Date >= event_date_checkpoint
+    where 
+      Date >= event_date_checkpoint
   )
   
 select

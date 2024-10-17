@@ -26,13 +26,11 @@ with
   source as (
     select
       Date,
-      Publisher_platform,
       Campaign_name,
       Impressions,
       Cost,
-      Clicks__all_,
-      Reach
-    from ${ref('meta_data')}
+      Clicks
+    from ${ref('bing_data')}
     where 
       Date >= event_date_checkpoint
   )

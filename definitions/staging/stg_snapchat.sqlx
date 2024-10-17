@@ -32,7 +32,8 @@ with
       Swipes,
       Unique_impressions
     from ${ref('snapchat_data')}
-    where Date >= event_date_checkpoint
+    where 
+      Date >= event_date_checkpoint
   )
   
 select
