@@ -51,6 +51,6 @@ with applications as (
     count(distinct case when conversions and not (regexp_contains(landing_page, '/bolan/') and not regexp_contains(source_medium, 'appen|email')) then session_id END) as Achieved_Value
   from
     applications a
-    right outer join ${ref('dates')} d ON a.date = d.date
+    right outer join ${ref('stg_dates')} d ON a.date = d.date
   group by 
     date
