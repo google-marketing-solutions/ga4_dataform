@@ -32,7 +32,7 @@ pre_operations {
     sum(impressions) as impressions,
     sum(cost) as cost,
     sum(clicks) as clicks
-  from ${ref('dates')} as d
+  from ${ref('stg_dates')} as d
   left join 
     ( 
       select * from ${ref('meta_ads')} as m 
