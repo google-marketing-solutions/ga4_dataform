@@ -1,7 +1,7 @@
 config {
     type: "incremental",
     schema: constants.OUTPUT_DATASET,
-    description: "Bing Ads data containing impressions, clicks and cost",
+    description: "Bing Ads data containing impressions, clicks and cost. Based on this sheet: https://docs.google.com/spreadsheets/d/1ym6sW6iebnf05_tviqsspr6ffj93N2zFASVucIsYdp4/edit?gid=0#gid=0.",
     tags: ["all"],
     bigquery: {
       partitionBy: "Date"

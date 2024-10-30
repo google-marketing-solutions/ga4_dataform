@@ -68,7 +68,9 @@ with session_first_last_source as (
             limit 1
         ) [safe_offset(0)] as last_non_null_traffic_source
     from ${ref('int_event')}
-    where event_date >= event_date_checkpoint
+    where 
+    event_date >= event_date_checkpoint
+    --event_date = '2024-10-10' /* Simply for testing purposes */
     and ga_session_key is not null
     and event_name not in ('session_start') --this condition could be commented/removed if looking at data post November 2, 2023 when it started being populated.
     group by
@@ -85,6 +87,7 @@ pages as (
         ga_session_key,
         session_id,
         string_agg(page_location order by event_timestamp) as pages_in_session,
+        string_agg(event_name order by event_timestamp) as events_in_session,
         array_agg(page_location ignore nulls order by event_timestamp limit 1)[SAFE_OFFSET(0)] as landing_page,
         string_agg(page_referrer order by event_timestamp) as page_referrer
     from ${ref('int_event')}
@@ -128,6 +131,7 @@ add_channel_group as (
     t.user_pseudo_id,
     t.session_id,
     p.pages_in_session,
+    p.events_in_session,
     p.landing_page,
     t.session_start_datetime,
     t.session_start_date,
