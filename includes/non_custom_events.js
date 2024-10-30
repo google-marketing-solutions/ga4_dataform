@@ -15,6 +15,7 @@
  */
 
 /* source: https://support.google.com/analytics/answer/9234069?hl=en */
+
 const nonCustomEvents = [
     { eventName:"ad_click" },
     { eventName:"ad_exposure" },

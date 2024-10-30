@@ -15,6 +15,7 @@
  */
 
 /* source: https://support.google.com/analytics/answer/9756891?hl=en#list */
+
 const sourceCategories = [
     { source:"360.cn", sourceCategory:"SOURCE_CATEGORY_SEARCH" },
     { source:"43things", sourceCategory:"SOURCE_CATEGORY_SOCIAL" },

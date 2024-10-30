@@ -21,7 +21,7 @@ const SEEDS_DATASET = "ga4_dataform_seed"; /* the database containing the GA4 Bi
 const STAGING_DATASET = "ga4_dataform_staging";
 const INTERMEDIATE_DATASET = "ga4_dataform_intermediate";
 const OUTPUT_DATASET = "ga4_dataform_output";
-const RESULTS_DATASET = "ga4_dataform_results";
+const DASHBOARDS_DATASET = "ga4_dataform_dashboards";
 const START_DATE = 20231101; /* data will be pulled starting this date */
 const ALL_EVENTS_LOOKBACK_WINDOW = 7776000; /* number of lookback days in seconds when looking at last non-direct session source and non-acquisition conversion events, default is 90 days (86400 seconds in a day)*/
 const AQUISITION_EVENTS_LOOKBACK_WINDOW = 2592000; /* number of lookback days in seconds when looking at acquisition conversion events (first_open and first_visit), default is 30 days (86400 seconds in a day)*/
@@ -61,7 +61,7 @@ module.exports = {
     STAGING_DATASET,
     INTERMEDIATE_DATASET,
     OUTPUT_DATASET,
-    RESULTS_DATASET,
+    DASHBOARDS_DATASET,
     START_DATE,
     ALL_EVENTS_LOOKBACK_WINDOW,
     GADS_SOURCE_PROJECT,
