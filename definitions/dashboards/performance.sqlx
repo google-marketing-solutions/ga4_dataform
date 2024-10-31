@@ -1,7 +1,7 @@
 config {
     type: "incremental",
     schema: constants.DASHBOARDS_DATASET,
-    description: "This table includes all events connected to applications (calculator, start, nav, submit etc.), to use in analysis or in dashboards, with session information included (session_id, source/medium, landing_page, pages_in_session etc). The table is used in the master-dashboard as well as in the performance dashboard and should be used when calculating the number of conversions and/or conversion rate based on KPIs from the marketing department.",
+    description: "This table includes all events connected to applications (calculator, start, nav, submit etc.), to use in analysis or in dashboards, with session information included (session_id, source/medium, landing_page, pages_in_session etc). The table is used in the master-dashboard as well as in the performance dashboard and should be used when calculating the number of conversions and/or conversion rate based on the marketing department KPIs.",
     tags: ["all"],
     bigquery: {
       partitionBy: "date"
