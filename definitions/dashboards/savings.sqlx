@@ -44,8 +44,7 @@ with applications as (
     step,
     previous_submit_location,
     source_medium,
-    channel_group,
-    sum(event_value) as event_value,
+    channel_group
   from
     applications
   group by
