@@ -1,7 +1,7 @@
 config {
     type: "incremental",
     schema: constants.DASHBOARDS_DATASET,
-    description: "This table includes all events connected to applications (calculator, start, nav, submit etc.), to use in analysis or in dashboards, with session information included (session_id, source/medium, landing_page, pages_in_session etc). Specific dimensions that has been added are: product (Privatlån, Bolån etc), type (Flytta bolån, Nytt bolån etc), previous_page_location, previous_submit_location (which page the session visited before submitting an application) and next_page_location. It also includes user parameters (as hasAccount etc), which are connected to a specific session_id, so if a user during a session has logged in, we can see which user parameters that session has, but no information in regards to how many users that has specific user parameter can be calculated with this table.",
+    description: "This table includes all events connected to applications (calculator, start, nav, submit etc.), to use in analysis or in dashboards, with session information included (session_id, source_medium, landing_page, pages_in_session etc). Specific dimensions that has been added are: product (Privatlån, Bolån etc), type (Flytta bolån, Nytt bolån etc), previous_page_location, previous_submit_location (which page the session visited before submitting an application) and next_page_location. It also includes user parameters (as hasAccount etc), which are connected to a specific session_id, so if a user during a session has logged in, we can see which user parameters that session has, but no information in regards to how many users that has specific user parameter can be calculated with this table.",
     tags: ["all"],
     bigquery: {
       partitionBy: "date"
