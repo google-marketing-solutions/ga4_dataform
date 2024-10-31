@@ -45,7 +45,7 @@ pre_operations {
     sum(impressions) as impressions,
     sum(clicks) as clicks,
     sum(cost) as cost
-  from ${ref('int_bing_ads_metrics')} b
+  from ${ref('int_bing_ads_metrics')}
   where 
     date >= event_date_checkpoint
   group by
