@@ -1,0 +1,57 @@
+config {
+    type: "incremental",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "This table includes data/metrics such as reach, impressions, clicks and cost from Meta Ads, Snapchat Ads, Google Ads, Microsoft Ads (Bing) and Adform. More channels can be added. Based on this sheet: https://docs.google.com/spreadsheets/d/1ym6sW6iebnf05_tviqsspr6ffj93N2zFASVucIsYdp4/edit?gid=0#gid=0.",
+    tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
+}
+
+  select
+    d.date,
+    platform,
+    campaign_name,
+    purpose,
+    product,
+    type,
+    sum(reach) as reach,
+    sum(impressions) as impressions,
+    sum(cost) as cost,
+    sum(clicks) as clicks
+  from ${ref('stg_dates')} as d
+  left join 
+    ( 
+      select * from ${ref('meta_ads')} as m 
+      union all
+      select * from ${ref('google_ads')} as g
+      union all
+      select * from ${ref('snapchat_ads')} as s
+      union all
+      select * from ${ref('adform')} as a
+      union all
+      select * from ${ref('bing_ads')} as b
+    ) c
+    on d.date = c.date
+  where 
+    d.date >= event_date_checkpoint
+  group by
+    date,
+    platform,
+    campaign_name,
+    purpose,
+    product,
+    type

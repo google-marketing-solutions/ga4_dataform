@@ -1,7 +1,7 @@
 config {
     type: "incremental",
-    schema: constants.RESULTS_DATASET,
-    description: "",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "This table includes all metrics needed to build a page navigation, to use in analysis or in dashboards.",
     tags: ["all"],
     bigquery: {
       partitionBy: "date"
@@ -42,8 +42,6 @@ select
   next_page_location,
   count(distinct session_id) AS sessions,
 from landing_pages
---and landing_page = 'https://www.icabanken.se/'
---and page_location = 'https://www.icabanken.se/'
 group by
   date,
   landing_page,
