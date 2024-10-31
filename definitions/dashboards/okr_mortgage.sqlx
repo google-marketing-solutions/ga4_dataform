@@ -1,7 +1,7 @@
 config {
     type: "incremental",
     schema: constants.DASHBOARDS_DATASET,
-    description: "OKR of conversion rate for mortgage, used in looker studio and tableau. Denominator will count the number of unique sessions that has vistied a specific /bolan/ page with specific conditions. Achieved_value will count the number of unique sessions where a submit event has happened within the same session",
+    description: "OKR of conversion rate for mortgage, used in looker studio and tableau. Denominator will count the number of unique sessions that have visited a specific /bolan/ page with specific conditions. Achieved_value will count the number of unique sessions where a submit event has happened within the same session",
     tags: ["all"],
     bigquery: {
       partitionBy: "date"
