@@ -1,7 +1,7 @@
 config {
     type: "incremental",
     schema: constants.INTERMEDIATE_DATASET,
-    description: "Intermediate model for Snapchat Ads campaign stats as cost etc.",
+    description: "Intermediate model for Bing Ads campaign stats as cost etc.",
     tags: ["all"],
     bigquery: {
         partitionBy: "Date",
