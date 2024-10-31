@@ -1,23 +1,7 @@
-/**
- * Copyright 2024 Google LLC
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 config {
     type: "incremental",
-    schema: constants.OUTPUT_DATASET,
-    description: "All events with session information (source/medium, landing_page etc) connected to applications to use for analysis or in looker reports",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "This table includes all events connected to applications (calculator, start, nav, submit etc.), to use in analysis or in dashboards, with session information included (session_id, source/medium, landing_page, pages_in_session etc). Specific dimensions that has been added are: product (Privatlån, Bolån etc), type (Flytta bolån, Nytt bolån etc), previous_page_location, previous_submit_location (which page the session visited before submitting an application) and next_page_location. It also includes user parameters (as hasAccount etc), which are connected to a specific session_id, so if a user during a session has logged in, we can see which user parameters that session has, but no information in regards to how many users that has specific user parameter can be calculated with this table.",
     tags: ["all"],
     bigquery: {
       partitionBy: "date"
@@ -108,6 +92,7 @@ with applications as (
     ${ref('event')}
   where 
     event_date >= event_date_checkpoint
+    --event_date = '2024-10-10' /* Simply for testing purposes */
     and (regexp_contains(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
     or regexp_contains(event_name, 'savings_account_application|savings_account_child_application|isk_account_application|isk_child_account_application|depot_account_application|depot_child_account_application')
     or regexp_contains(event_name, 'debit_card_application|debit_card_child_application|credit_card_application|ica_student_application|increase_card_credit_application|increase_account_credit_application|bank_account_application|ikk_application')
@@ -151,17 +136,32 @@ sessions as (
     session_start_date,
     concat(user_pseudo_id,ga_session_id) as session_id,
     pages_in_session,
+    events_in_session,
     landing_page,
     concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium,
     last_non_direct_traffic_source.channel_group,
     last_non_direct_traffic_source.campaign,
-    last_non_direct_traffic_source.term
+    last_non_direct_traffic_source.term as utm_term
   from
     ${ref('session')}
 )
 
 select
-  a.*,
+  a.date,
+  a.device,
+  a.page_location,
+  a.session_id,
+  a.internal_traffic,
+  a.environment,
+  a.event_timestamp,
+  a.previous_page_location,
+  a.next_page_location,
+  a.previous_submit_location,
+  a.product,
+  a.type,
+  a.step_text,
+  a.status,
+  a.event_name,
   s.* except (session_id, session_start_date, landing_page),
   regexp_extract(landing_page, r'[^/]+//[^/]+(/[^?]*)') as landing_page,
   /*case
@@ -174,16 +174,14 @@ select
     when a.event_name = 'debit_card_child_application_submit' then 'Submit'
     when regexp_contains(a.event_name, '_submit') and a.step_text = 'Kvittens' then 'Submit'
     when a.event_name = 'increase_account_credit_application_subm' then 'Submit'
-    when a.event_params.step is not null and a.event_params.step_text is not null then concat('Steg ', a.event_params.step, ' - ', a.event_params.step_text) 
-    else a.event_params.step_text end as step,
+    when a.event_params.step is not null and a.step_text is not null then concat('Steg ', a.event_params.step, ' - ', a.step_text) 
+    else a.step_text end as step,
+    a.event_params,
+    a.user_params,
 from
   applications_final a
   join sessions s on a.session_id = s.session_id
   where source_medium != 'tagassistant.google.com / referral'
-  --and event_date = '2024-09-09'
-  --and product = 'Spara'
-  --and event_name = 'page_view'
-  --and a.session_id = '4uGW7tsDpQOo9zwWyo6b/h8MOn5tRATaIlcabonz1+c=.17066000081706600007'
 group by  
   date,
   device,
@@ -191,20 +189,21 @@ group by
   a.session_id,
   internal_traffic,
   environment,
-  event_params,
-  user_params,
   event_timestamp,
   previous_page_location,
   next_page_location,
+  previous_submit_location,
   product,
   type,
   step_text,
   status,
   event_name,
   pages_in_session,
+  events_in_session,
   landing_page,
   source_medium,
   channel_group,
   campaign,
-  term,
-  previous_submit_location
+  utm_term,
+  event_params,
+  user_params

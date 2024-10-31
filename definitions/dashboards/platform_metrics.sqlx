@@ -1,7 +1,7 @@
 config {
     type: "incremental",
-    schema: constants.OUTPUT_DATASET,
-    description: "Data from Meta Ads, Snapchat Ads, Google Ads and Adform.",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "This table includes data/metrics such as reach, impressions, clicks and cost from Meta Ads, Snapchat Ads, Google Ads, Microsoft Ads (Bing) and Adform. More channels can be added. Based on this sheet: https://docs.google.com/spreadsheets/d/1ym6sW6iebnf05_tviqsspr6ffj93N2zFASVucIsYdp4/edit?gid=0#gid=0.",
     tags: ["all"],
     bigquery: {
       partitionBy: "date"
@@ -49,9 +49,9 @@ pre_operations {
   where 
     d.date >= event_date_checkpoint
   group by
-    1,
-    2,
-    3,
-    4,
-    5,
-    6
+    date,
+    platform,
+    campaign_name,
+    purpose,
+    product,
+    type

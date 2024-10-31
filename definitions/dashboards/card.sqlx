@@ -1,7 +1,7 @@
 config {
     type: "incremental",
-    schema: constants.RESULTS_DATASET,
-    description: "All mortgage related tracking",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "This table includes all card related tracking based on the table applications, to use in analysis or in dashboards.",
     tags: ["all"],
     bigquery: {
       partitionBy: "date"
@@ -28,7 +28,7 @@ with applications as (
     ${ref('applications')}
   where
     date >= event_date_checkpoint
-    and product = 'Bolån'
+    and product = 'Kort'
 )
 
   select
@@ -41,7 +41,7 @@ with applications as (
     step,
     previous_submit_location,
     source_medium,
-    sum(event_value) as event_value,
+    channel_group
   from
     applications
   group by
@@ -53,4 +53,5 @@ with applications as (
     pages_in_session,
     step,
     previous_submit_location,
-    source_medium
+    source_medium,
+    channel_group
