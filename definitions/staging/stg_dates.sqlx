@@ -1,6 +1,6 @@
 config {
   type: "table",
-  schema: constants.OUTPUT_DATASET,
+  schema: constants.STAGING_DATASET,
   description: "Table with dates from 2023-01-01. Usable when other tables does not include all dates.",
   tags: ["all"],
 }
