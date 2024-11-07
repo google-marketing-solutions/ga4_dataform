@@ -46,6 +46,7 @@ with applications as (
     previous_submit_location,
     source_medium,
     channel_group,
+    campaign,
     event_params.co_applicant as co_applicant,
     case
       when regexp_contains(event_name, 'start') then 'Start'
@@ -79,4 +80,5 @@ with applications as (
     previous_submit_location,
     source_medium,
     channel_group,
+    campaign,
     co_applicant

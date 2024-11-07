@@ -43,7 +43,8 @@ with applications as (
     step,
     previous_submit_location,
     source_medium,
-    channel_group
+    channel_group,
+    campaign
   from
     applications
   group by
@@ -58,4 +59,5 @@ with applications as (
     step,
     previous_submit_location,
     source_medium,
-    channel_group
+    channel_group,
+    campaign
