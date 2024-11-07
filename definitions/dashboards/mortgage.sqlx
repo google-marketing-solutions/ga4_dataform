@@ -44,6 +44,7 @@ with applications as (
     previous_submit_location,
     source_medium,
     channel_group,
+    campaign,
     sum(event_value) as event_value,
   from
     applications
@@ -59,4 +60,5 @@ with applications as (
     step,
     previous_submit_location,
     source_medium,
-    channel_group
+    channel_group,
+    campaign
