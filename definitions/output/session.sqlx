@@ -87,11 +87,24 @@ pages as (
         ga_session_key,
         session_id,
         string_agg(page_location order by event_timestamp) as pages_in_session,
-        string_agg(event_name order by event_timestamp) as events_in_session,
         array_agg(page_location ignore nulls order by event_timestamp limit 1)[SAFE_OFFSET(0)] as landing_page,
         string_agg(page_referrer order by event_timestamp) as page_referrer
     from ${ref('int_event')}
     where event_name = 'page_view'
+    group by 
+        user_key,
+        ga_session_key,
+        session_id
+),
+
+events as (
+    select
+        user_key,
+        ga_session_key,
+        session_id,
+        string_agg(event_name order by event_timestamp) as events_in_session
+    from ${ref('int_event')}
+    where event_name != 'page_view'
     group by 
         user_key,
         ga_session_key,
@@ -131,7 +144,7 @@ add_channel_group as (
     t.user_pseudo_id,
     t.session_id,
     p.pages_in_session,
-    p.events_in_session,
+    e.events_in_session,
     p.landing_page,
     t.session_start_datetime,
     t.session_start_date,
@@ -166,6 +179,9 @@ add_channel_group as (
     left join pages p
       on p.user_key = t.user_key
       and p.ga_session_key = t.ga_session_key
+    left join events e
+      on e.user_key = t.user_key
+      and e.ga_session_key = t.ga_session_key
 
 )
 
