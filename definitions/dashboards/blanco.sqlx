@@ -47,6 +47,7 @@ with applications as (
     source_medium,
     channel_group,
     campaign,
+    event_params.main_applicant as main_applicant,
     event_params.co_applicant as co_applicant,
     case
       when regexp_contains(event_name, 'start') then 'Start'
@@ -60,6 +61,8 @@ with applications as (
       when event_name = 'blanco_application_sign_click' then 'Sign click'
       when event_name = 'blanco_application_signed' then 'Sign'
       when event_name = 'blanco_autogiro_sign_click' then 'Autogiro sign click'
+      when event_name = 'blanco_loan_protection_cta_click' then 'CTA click'
+      when event_name = 'blanco_loan_protection_sign' then 'Sign'
   else '99' end as sort,
   sum(event_value) as event_value
   from
@@ -81,4 +84,5 @@ with applications as (
     source_medium,
     channel_group,
     campaign,
+    main_applicant,
     co_applicant
