@@ -66,6 +66,10 @@ with applications as (
       )
       else null
     end as previous_start_location,
+    case
+      when event_name = 'blanco_loan_protection_cta_click' then page_location
+      else null
+    end as previous_cta_click_location,
     first_value(case when regexp_contains(event_name, 'application_start') then event_timestamp end ignore nulls)
     over (partition by session_id order by event_timestamp) as application_start_time,
     case
@@ -92,7 +96,7 @@ with applications as (
     ${ref('event')}
   where 
     event_date >= event_date_checkpoint
-    --event_date = '2024-10-10' /* Simply for testing purposes */
+    --event_date = '2024-11-07' /* Simply for testing purposes */
     and (regexp_contains(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
     or regexp_contains(event_name, 'savings_account_application|savings_account_child_application|isk_account_application|isk_child_account_application|depot_account_application|depot_child_account_application')
     or regexp_contains(event_name, 'debit_card_application|debit_card_child_application|credit_card_application|ica_student_application|increase_card_credit_application|increase_account_credit_application|bank_account_application|ikk_application')
@@ -124,10 +128,16 @@ applications_final as (
       case
         when previous_start_location = '(entrance)' or previous_start_location = '/lana/privatlan/ansok-om-lan/' then 'Landade i ansökningsflödet'
         else previous_start_location end end ignore nulls)
-    over (partition by session_id order by event_timestamp) else null end as previous_submit_location,
-  /*case
-   when regexp_contains(event_name, 'application') then first_value(case when regexp_contains(event_name, 'application_start') then previous_start_location end ignore nulls)
-    over (partition by session_id order by event_timestamp) else null end as previous_submit_location,*/
+    over (partition by session_id order by event_timestamp)
+    when regexp_contains(event_name, 'loan_protection') then 
+    first_value(
+    case 
+      when event_name = 'blanco_loan_protection_cta_click' then 
+      case
+        when previous_cta_click_location = '(entrance)' then 'Landade i ansökningsflödet'
+        else previous_cta_click_location end end ignore nulls)
+    over (partition by session_id order by event_timestamp)  
+  else null end as previous_submit_location,
   from applications
 ),
 
@@ -164,9 +174,6 @@ select
   a.event_name,
   s.* except (session_id, session_start_date, landing_page),
   regexp_extract(landing_page, r'[^/]+//[^/]+(/[^?]*)') as landing_page,
-  /*case
-    when previous_submit_location = '(entrance)' or previous_submit_location = '/lana/privatlan/ansok-om-lan/' then 'Landade på ansökan'
-    else previous_submit_location end as previous_submit_location,*/
   case 
     when regexp_contains(a.event_name, '_subm') then sum(a.event_params.value) else null end as event_value,
   case 
