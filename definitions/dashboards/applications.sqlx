@@ -97,9 +97,9 @@ with applications as (
   where 
     event_date >= event_date_checkpoint
     --event_date = '2024-11-07' /* Simply for testing purposes */
-    and (regexp_contains(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_')
-    or regexp_contains(event_name, 'savings_account_application|savings_account_child_application|isk_account_application|isk_child_account_application|depot_account_application|depot_child_account_application')
-    or regexp_contains(event_name, 'debit_card_application|debit_card_child_application|credit_card_application|ica_student_application|increase_card_credit_application|increase_account_credit_application|bank_account_application|ikk_application')
+    and (regexp_contains(event_name, 'transfer_mortgage_application_|new_mortgage_application_|commitment_mortgage_application_|raise_mortgage_application_|loan_promise_application_') /* Mortgage */
+    or regexp_contains(event_name, 'savings_account_application|savings_account_child_application|isk_account_application|isk_child_account_application|depot_account_application|depot_child_account_application') /* Savings */
+    or regexp_contains(event_name, 'debit_card_application|debit_card_child_application|credit_card_application|ica_student_application|increase_card_credit_application|increase_account_credit_application|bank_account_application|ikk_application') /* Card */
     or regexp_contains(event_name, 'blanco_loan_protection')
     or regexp_contains(event_name, "blanco_autogiro")
     or event_name = 'blanco_application_start'
@@ -112,6 +112,7 @@ with applications as (
     or event_name = 'calculator_nav'
     or event_name = 'mortgage_indicator_nav'
     or event_name = 'mortgage_indicator')
+    or regexp_contains(event_name, 'button_click|link_click|outbound_link_click|card_click|menu_click|drawer_open')
     and environment = 'prod'
     and not regexp_contains(page_location, 'sandbox')
 ),
