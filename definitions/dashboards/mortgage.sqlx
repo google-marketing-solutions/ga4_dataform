@@ -28,19 +28,23 @@ with applications as (
     ${ref('applications')}
   where
     date >= event_date_checkpoint
+    --date = '2024-11-25' /* Simply for testing purposes */
     and product = 'Bolån'
 )
 
   select
     date,
     session_id,
+    device,
     type,
     event_name,
     status,
     REGEXP_EXTRACT(page_location, r'[^/]+//[^/]+(/[^?]*)') AS page_location,
     pages_in_session,
     events_in_session,
-    step,
+    case
+      when event_params.sub_step is not null then concat('Steg 0.5 - Första klick')
+      else step end as step,
     previous_submit_location,
     source_medium,
     channel_group,
@@ -51,6 +55,7 @@ with applications as (
   group by
     date,
     session_id,
+    device,
     type,
     event_name,
     status,

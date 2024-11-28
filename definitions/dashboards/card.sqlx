@@ -34,6 +34,7 @@ with applications as (
   select
     date,
     session_id,
+    device,
     type,
     event_name,
     status,
@@ -50,6 +51,7 @@ with applications as (
   group by
     date,
     session_id,
+    device,
     type,
     event_name,
     status,
