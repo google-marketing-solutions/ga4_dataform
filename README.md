@@ -3,6 +3,8 @@
 
 **Please note: this is not an officially supported Google product.**
 
+**NOTE: With the recent [announcement of traffic session source](https://support.google.com/analytics/answer/9164320?hl=en#071924) information fields in the GA4 BigQuery exports, the sessionization logic included in this solution is not necessary anymore, unless the purpose is to sessionize historical data (pre-July 2024)**
+
 ## Contents
 - [What it is](#what-it-is)
 - [Get Started](#get-started)
