@@ -183,6 +183,7 @@ select
     when regexp_contains(a.event_name, '_submit') and a.step_text = 'Kvittens' then 'Submit'
     when a.event_name = 'increase_account_credit_application_subm' then 'Submit'
     when a.event_params.step is not null and a.step_text is not null then concat('Steg ', a.event_params.step, ' - ', a.step_text) 
+    when a.event_params.step is not null and a.step_text is null then concat('Steg ', a.event_params.step) 
     else a.step_text end as step,
     a.event_params,
     a.user_params,
