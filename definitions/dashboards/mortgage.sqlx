@@ -49,6 +49,8 @@ with applications as (
     source_medium,
     channel_group,
     campaign,
+    event_params.button_text as button_text,
+    event_params.destination_url as destination_url,
     sum(event_value) as event_value,
   from
     applications
@@ -66,4 +68,6 @@ with applications as (
     previous_submit_location,
     source_medium,
     channel_group,
-    campaign
+    campaign,
+    button_text,
+    destination_url
