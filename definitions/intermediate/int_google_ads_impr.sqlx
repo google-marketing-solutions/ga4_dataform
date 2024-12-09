@@ -28,7 +28,7 @@ pre_operations {
         sum(metrics_impressions) as impressions,
     from
         ${ref('stg_google_ads_campaign_stats')} bcs
-        where segments_click_type = 'URL_CLICKS' or segments_click_type = 'VIDEO_WEBSITE_CLICKS'
+        where segments_click_type = 'URL_CLICKS' or segments_click_type = 'VIDEO_WEBSITE_CLICKS' or segments_click_type = 'CROSS_NETWORK'
         and _data_date >= event_date_checkpoint
     group by
         1,
