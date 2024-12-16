@@ -152,7 +152,8 @@ sessions as (
     concat(last_non_direct_traffic_source.source, " / ", last_non_direct_traffic_source.medium) as source_medium,
     last_non_direct_traffic_source.channel_group,
     last_non_direct_traffic_source.campaign,
-    last_non_direct_traffic_source.term as utm_term
+    last_non_direct_traffic_source.term as utm_term,
+    last_non_direct_traffic_source.content as utm_content
   from
     ${ref('session')}
 )
@@ -214,5 +215,6 @@ group by
   channel_group,
   campaign,
   utm_term,
+  utm_content,
   event_params,
   user_params
