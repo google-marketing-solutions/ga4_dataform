@@ -46,7 +46,9 @@ with applications as (
     previous_submit_location,
     source_medium,
     channel_group,
-    campaign
+    campaign,
+    event_params.button_text as button_text,
+    event_params.destination_url as destination_url,
   from
     applications
   group by
@@ -63,4 +65,6 @@ with applications as (
     previous_submit_location,
     source_medium,
     channel_group,
-    campaign
+    campaign,
+    button_text,
+    destination_url
