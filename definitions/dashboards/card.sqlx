@@ -28,6 +28,7 @@ with applications as (
     ${ref('applications')}
   where
     date >= event_date_checkpoint
+    --date = '2024-12-10' /* Simply for testing purposes */
     and product = 'Kort'
 )
 
@@ -45,7 +46,9 @@ with applications as (
     previous_submit_location,
     source_medium,
     channel_group,
-    campaign
+    campaign,
+    event_params.button_text as button_text,
+    REGEXP_EXTRACT(event_params.destination_url, r'[^?]+') AS destination_url,
   from
     applications
   group by
@@ -62,4 +65,6 @@ with applications as (
     previous_submit_location,
     source_medium,
     channel_group,
-    campaign
+    campaign,
+    button_text,
+    destination_url
