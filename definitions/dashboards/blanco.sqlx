@@ -28,7 +28,7 @@ with applications as (
     ${ref('applications')}
   where
     date >= event_date_checkpoint
-    --date = '2024-10-10' /* Simply for testing purposes */
+    --date = '2024-12-10' /* Simply for testing purposes */
     and product = 'Privatlån'
 )
 
@@ -49,6 +49,8 @@ with applications as (
     campaign,
     event_params.main_applicant as main_applicant,
     event_params.co_applicant as co_applicant,
+    event_params.button_text as button_text,
+    REGEXP_EXTRACT(event_params.destination_url, r'[^?]+') AS destination_url,
     case
       when regexp_contains(event_name, 'start') then 'Start'
       when regexp_contains(step, '1') then 'Steg 1 - Frågor om lånet'
@@ -63,8 +65,8 @@ with applications as (
       when event_name = 'blanco_autogiro_sign_click' then 'Autogiro sign click'
       when event_name = 'blanco_loan_protection_cta_click' then 'CTA click'
       when event_name = 'blanco_loan_protection_sign' then 'Sign'
-  else '99' end as sort,
-  sum(event_value) as event_value
+    else '99' end as sort,
+    sum(event_value) as event_value
   from
     applications
   where 
@@ -85,4 +87,6 @@ with applications as (
     channel_group,
     campaign,
     main_applicant,
-    co_applicant
+    co_applicant,
+    button_text,
+    destination_url
