@@ -68,67 +68,52 @@ function groupChannels(source, medium, sourceCategory) {
                     )
                     then 'Direct'
                 when
-                    ${sourceCategory} = 'SOURCE_CATEGORY_SHOPPING'
-                    and regexp_contains(${medium},r"^(.*cp.*|ppc|retargeting|paid.*)$")
-                    then 'Paid Shopping'
+                    regexp_contains(${source}, r"icaforsakring")
+                    then 'ICA Försäkring'
+                when
+                    regexp_contains(${medium}, r"^(paid|paidsocial|paid social|paidsicial)")
+                    or regexp_contains(${source}, r"^(adform|RTL|olv|tv4|rtb|matterkind|schibsted|dfa)")
+                    or ${medium} = "video"
+                    then 'Paid Traffic'
+                when
+                    regexp_contains(${source}, r"^(facebook|instagram|pinterest|reddit|twitter|linkedin)")
+                    or ${medium} in ("social")
+                    or ${sourceCategory} = 'SOURCE_CATEGORY_SOCIAL'
+                    then 'Organic Social'
                 when
                     ${sourceCategory} = 'SOURCE_CATEGORY_SEARCH'
                     and regexp_contains(${medium}, r"^(.*cp.*|ppc|retargeting|paid.*)$")
                     then 'Paid Search'
                 when
-                    (
-                    regexp_contains(${source}, r"^(facebook|instagram|pinterest|reddit|twitter|linkedin)")
-                    or ${sourceCategory} = 'SOURCE_CATEGORY_SOCIAL'
-                    )
-                    and regexp_contains(${medium}, r"^(.*cp.*|ppc|retargeting|paid.*)$")
-                    then 'Paid Social'
+                    ${source} = 'appen'
+                    or ${source} = 'appen,appen'
+                    then 'Appen'
                 when
-                    (${sourceCategory} = 'SOURCE_CATEGORY_VIDEO' AND regexp_contains(${medium},r"^(.*cp.*|ppc|retargeting|paid.*)$"))
-                    or ${source} = 'dv360_video'
-                    then 'Paid Video'
+                    ${source} = 'ica-app'
+                    then 'ICA Appen'
                 when
-                    regexp_contains(${medium}, r"^(display|cpm|banner|expandable|interstitial)$")
-                    or ${source} = 'dv360_display'
-                    then 'Display'
+                    regexp_contains(${source}, r"ica")
+                    then 'ICA'
                 when
-                    regexp_contains(${medium}, r"^(.*cp.*|ppc|retargeting|paid.*)$")
-                    then 'Paid Other'
-                when
-                    ${sourceCategory} = 'SOURCE_CATEGORY_SHOPPING'
-                    then 'Organic Shopping'
-                when
-                    regexp_contains(${source}, r"^(facebook|instagram|pinterest|reddit|twitter|linkedin)")
-                    or ${medium} in ("social","social-network","social-media","sm","social network","social media")
-                    or ${sourceCategory} = 'SOURCE_CATEGORY_SOCIAL'
-                    then 'Organic Social'
-                when
-                    ${sourceCategory} = 'SOURCE_CATEGORY_VIDEO'
-                    or regexp_contains(${medium}, r"^(.*video.*)$")
-                    then 'Organic Video'
+                    regexp_contains(${source}, 'hemnet')
+                    and not regexp_contains(${medium}, "paid")
+                    then 'Hemnet'
                 when
                     ${medium} = 'organic'
                     or ${sourceCategory} = 'SOURCE_CATEGORY_SEARCH'
                     then 'Organic Search'
                 when
-                    ${medium} in ("referral", "app", "link")
-                    then 'Referral'
+                    regexp_contains(${source}, 'mecenat')
+                    or  regexp_contains(${source}, 'studentkortet')
+                    then 'Mecenat/Student'
                 when
-                    regexp_contains(${medium}, r"email|e-mail|e_mail|e mail")
-                    or regexp_contains(${source}, r"email|e-mail|e_mail|e mail")
+                    regexp_contains(${medium}, r"email")
+                    or regexp_contains(${source}, r"crm_banken")
                     then 'Email'
                 when
-                    regexp_contains(${medium}, r"affiliate|affiliates")
-                    then 'Affiliates'
-                when
-                    ${medium} = 'audio'
-                    then 'Audio'
-                when
-                    ${medium} = 'sms'
-                    or ${source} = 'sms'
-                    then 'SMS'
-                when
-                    regexp_contains(${medium}, r"(mobile|notification|push$)") or ${source} = 'firebase'
-                    then 'Push Notifications'
+                    ${medium} in ("referral", "app", "link")
+                    or ${medium} in ("adtraction")
+                    then 'Referral'
                 else '(Other)'
                 end`
 }

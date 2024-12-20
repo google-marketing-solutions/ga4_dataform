@@ -1,0 +1,49 @@
+config {
+    type: "incremental",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "This table includes all metrics needed to build a page navigation, to use in analysis or in dashboards.",
+    tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
+}
+
+with landing_pages as (
+  select
+    date,
+    session_id,
+    landing_page,
+    page_location,
+    next_page_location
+  from
+    ${ref('applications')}
+  where
+    date >= event_date_checkpoint
+    and event_name = 'page_view'
+)
+
+select
+  date,
+  landing_page,
+  page_location,
+  next_page_location,
+  count(distinct session_id) AS sessions,
+from landing_pages
+group by
+  date,
+  landing_page,
+  page_location,
+  next_page_location

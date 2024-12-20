@@ -1,0 +1,57 @@
+config {
+    type: "incremental",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "OKR of conversion rate for mortgage, used in looker studio and tableau. Denominator will count the number of unique sessions that have visited a product page for private loan. Achieved_value will count the number of unique sessions where a submit event has happened within the same session",
+    tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
+}
+
+with applications as (
+  select
+    date,
+    session_id,
+    LOGICAL_OR(event_name = 'page_view') as visited_blanco,
+    LOGICAL_OR(event_name = 'blanco_application_submit') as conversions,
+    page_location,
+    landing_page,
+    source_medium
+  from
+    ${ref('applications')}
+  where
+    date >= event_date_checkpoint
+    and product = 'Privatlån'
+    and regexp_contains(event_name, 'page_view|submit')
+  group by
+    date,
+    session_id,
+    page_location,
+    landing_page,
+    source_medium
+)
+
+  select
+    d.date as Date,
+    cast(format_date('%Y%m%d', d.date) as int64) as DateID, 
+    'Conversion Rate Private Loan Submitted Applications (interest to submit)' as KPI_Name_Eng,
+    count(distinct case when visited_blanco then session_id END) as Denominator,
+    count(distinct case when conversions then session_id END) as Achieved_Value
+  from
+    applications a
+    right outer join ${ref('stg_dates')} d ON a.date = d.date
+  group by 
+    date

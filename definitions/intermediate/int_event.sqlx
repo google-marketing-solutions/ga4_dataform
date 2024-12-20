@@ -13,10 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+ 
 config {
     type: "incremental",
     schema: constants.INTERMEDIATE_DATASET,
     description: "Intermediate model that updates staging events data.",
+    tags: ["all"],
     bigquery: {
         partitionBy: "event_date",
         clusterBy: ["user_key", "ga_session_key"]
@@ -38,7 +40,7 @@ pre_operations {
 
 with staging as (
     select
-        stg_events.* except(event_traffic_source, collected_traffic_source, event_timestamp, event_datetime),
+        stg_events.* except(event_traffic_source, collected_traffic_source, event_timestamp, event_datetime, items),
         ${helpers.adjustCampaignTimestamp('stg_events')} as event_timestamp,
         datetime(timestamp_seconds(cast(${helpers.adjustCampaignTimestamp('stg_events')} / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
         to_base64(md5(concat(user_pseudo_id, stream_id))) as user_key,
@@ -87,10 +89,12 @@ with staging as (
         --custom events sometimes miss values for traffic sources and could cause attribution errors
         --when trying to identify the first traffic source for sessions with custom event
         --that are sent with no values for source/medium on the exact same timestamp as the first session event (page_view etc...),
-        --we see an overattribution to null traffic sources.
-        ${when(constants.GADS_GET_DATA, `left join ${constants.INTERMEDIATE_DATASET}.int_ads_click_campaign as int_ads_click_campaign on stg_events.collected_traffic_source.gclid = int_ads_click_campaign.gclid`)}
-    where event_date >= event_date_checkpoint
+        --we see an overattribution to null traffic sources. 
+        left join ${ref('int_google_ads_gclid')} as int_ads_click_campaign 
+        on stg_events.collected_traffic_source.gclid = int_ads_click_campaign.gclid
+        where event_date >= event_date_checkpoint
 )
+
 select
     *
 from staging

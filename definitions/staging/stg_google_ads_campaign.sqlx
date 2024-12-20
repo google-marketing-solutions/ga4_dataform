@@ -1,0 +1,38 @@
+config {
+  type: "incremental",
+  schema: constants.STAGING_DATASET,
+  description: "Staging model for Google Ads campaigns. Includes campaign_name and campaign_id.",
+  tags: ["all", "google_ads"],
+  bigquery: {
+    partitionBy: "_data_date",
+    clusterBy: ["campaign_id"]
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(_data_date) - interval 3 day from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  );
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where _data_date >= event_date_checkpoint`)
+  }
+}
+
+with
+  source as (
+    select
+      _data_date,
+      campaign_id,
+      campaign_name,
+    from ${ref('ads_Campaign_' + constants.GADS_CUSTOMER_ID)}
+    where _data_date >= event_date_checkpoint
+  )
+  
+select
+  *
+from
+  source

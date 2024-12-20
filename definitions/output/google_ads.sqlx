@@ -1,0 +1,57 @@
+config {
+    type: "incremental",
+    schema: constants.OUTPUT_DATASET,
+    description: "Google Ads data containing impressions, clicks and cost. Based on this sheet: https://docs.google.com/spreadsheets/d/1ym6sW6iebnf05_tviqsspr6ffj93N2zFASVucIsYdp4/edit?gid=0#gid=0.",
+    tags: ["all", "google_ads"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
+}
+    select
+    i._data_date as date,
+    'Google' as platform,
+    cn.campaign_name,
+    --i.campaign_id,
+    case
+      when regexp_contains(cn.campaign_name, 'Gen') then 'Performance'
+      when regexp_contains(cn.campaign_name, 'Brand') then 'Brand'
+    else null end as purpose,
+    case
+      when regexp_contains(campaign_name, 'privatlan|Privatlån|privatlån') then 'Privatlån'
+      when regexp_contains(campaign_name, 'bolan|Bolån|bolån') then 'Bolån'
+      when regexp_contains(campaign_name, 'kort|Kort') then 'Kort'
+      when regexp_contains(campaign_name, 'spara|Spara') then 'Spara'
+    else null end as product,
+    case
+      when regexp_contains(campaign_name, 'Flytta') then 'Flytta bolån'
+      when regexp_contains(campaign_name, 'Nytt') then 'Nytt bolån'
+      when regexp_contains(campaign_name, 'Lånelöfte') then 'Lånelöfte'
+      when regexp_contains(campaign_name, 'Utöka') then 'Utöka bolån'
+    else null end as type,
+    0 as reach,
+    sum(i.impressions) as impressions,
+    sum(m.clicks) as clicks,
+    sum(m.cost) as cost
+    from ${ref('int_google_ads_impr')} i
+        left join ${ref('int_google_ads_metrics')} m on i.campaign_id = m.campaign_id and i._data_date = m._data_date
+        left join ${ref('int_google_ads_campaign_name')} cn on cn.campaign_id = m.campaign_id
+    where 
+        i._data_date >= event_date_checkpoint
+    group by
+        date,
+        platform,
+        campaign_name
+        --campaign_id

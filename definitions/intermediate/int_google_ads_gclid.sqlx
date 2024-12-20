@@ -1,0 +1,26 @@
+config {
+    type: "table",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model that combines Google Ads click stats and campaign data from staging tables.",
+    tags: ["all", "google_ads"]
+}
+
+with clickCampaign as (
+  select
+    cs.gclid as gclid,
+    cs.campaign_id as campaign_id,
+    ca.campaign_name as campaign_name,
+    row_number() over (
+      partition by gclid
+      order by cs._data_date desc
+    ) as row_num
+  from ${ref('stg_google_ads_clicks_stats')} as cs
+  left join ${ref('stg_google_ads_campaign')} as ca
+    using (campaign_id)
+)
+select
+  gclid,
+  campaign_id,
+  campaign_name
+from clickCampaign
+where row_num = 1

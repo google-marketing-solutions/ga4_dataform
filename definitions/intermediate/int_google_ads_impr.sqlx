@@ -1,0 +1,35 @@
+config {
+    type: "incremental",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model that updates staging Google Ads impressions.",
+    tags: ["all", "google_ads"],
+    bigquery: {
+        partitionBy: "_data_date",
+        clusterBy: ["campaign_id"]
+    }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(_data_date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where _data_date >= event_date_checkpoint`)
+  }
+}
+
+    select
+        _data_date,
+        campaign_id,
+        sum(metrics_impressions) as impressions,
+    from
+        ${ref('stg_google_ads_campaign_stats')} bcs
+        where segments_click_type = 'URL_CLICKS' or segments_click_type = 'VIDEO_WEBSITE_CLICKS' or segments_click_type = 'CROSS_NETWORK'
+        and _data_date >= event_date_checkpoint
+    group by
+        1,
+        2

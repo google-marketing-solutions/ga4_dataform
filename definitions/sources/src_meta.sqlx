@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  schema: constants.FB_SOURCE_DATASET,
+  ...(constants.FB_SOURCE_PROJECT) && {database: constants.FB_SOURCE_PROJECT},
+  name: "meta_data",
+  description: ""
+}

@@ -1,0 +1,21 @@
+config {
+  type: "table",
+  schema: constants.STAGING_DATASET,
+  description: "Table with dates from 2023-01-01. Usable when other tables does not include all dates.",
+  tags: ["all"],
+}
+
+with dates as (
+  select
+    date
+  from(
+    select generate_date_array('2023-01-01', current_date()) as dates
+  ), unnest(dates) as date
+)
+
+select
+  *
+from 
+  dates
+order by 
+  date

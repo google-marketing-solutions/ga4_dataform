@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  schema: constants.AF_SOURCE_DATASET,
+  ...(constants.AF_SOURCE_PROJECT) && {database: constants.AF_SOURCE_PROJECT},
+  name: "adform_data",
+  description: ""
+}

@@ -1,0 +1,70 @@
+config {
+    type: "incremental",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "This table includes all savings related tracking based on the table called applications, to use in analysis or in dashboards.",
+    tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
+}
+
+with applications as (
+  select
+    *
+  from
+    ${ref('applications')}
+  where
+    date >= event_date_checkpoint
+    --date = '2024-12-10' /* Simply for testing purposes */
+    and product = 'Spara'
+)
+
+  select
+    date,
+    session_id,
+    device,
+    type,
+    event_name,
+    status,
+    REGEXP_EXTRACT(page_location, r'[^/]+//[^/]+(/[^?]*)') AS page_location,
+    pages_in_session,
+    events_in_session,
+    step,
+    previous_submit_location,
+    source_medium,
+    channel_group,
+    campaign,
+    event_params.button_text as button_text,
+    REGEXP_EXTRACT(event_params.destination_url, r'[^?]+') AS destination_url,
+  from
+    applications
+  group by
+    date,
+    session_id,
+    device,
+    type,
+    event_name,
+    status,
+    page_location,
+    pages_in_session,
+    events_in_session,
+    step,
+    previous_submit_location,
+    source_medium,
+    channel_group,
+    campaign,
+    button_text,
+    destination_url

@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  schema: constants.B_SOURCE_DATASET,
+  ...(constants.B_SOURCE_PROJECT) && {database: constants.B_SOURCE_PROJECT},
+  name: "bing_data",
+  description: ""
+}

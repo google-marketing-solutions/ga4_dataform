@@ -1,0 +1,72 @@
+config {
+    type: "incremental",
+    schema: constants.DASHBOARDS_DATASET,
+    description: "This table includes all events connected to applications (calculator, start, nav, submit etc.), to use in analysis or in dashboards, with session information included (session_id, source/medium, landing_page, pages_in_session etc). The table is used in the master-dashboard as well as in the performance dashboard and should be used when calculating the number of conversions and/or conversion rate based on the marketing department KPIs.",
+    tags: ["all"],
+    bigquery: {
+      partitionBy: "date"
+  }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(date) -3 from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  )
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where date >= event_date_checkpoint`)
+  }
+}
+
+select
+  date,
+  session_id,
+  channel_group,
+  source_medium,
+  campaign,
+  utm_term,
+  product,
+  case 
+    when product != 'Privatlån' then type
+  else null end as type,
+  case
+      when regexp_contains(campaign, 'apple|BVOD|brand|Brand|enkla') and not (channel_group = 'Paid Search' or regexp_contains(source_medium, 'cpc')) then 'Paid brand'
+      when channel_group = 'Paid Search' or channel_group = 'Paid Traffic' or regexp_contains(source_medium, 'hemnet|mecenat|studentkortet') then 'Paid performance'
+      when regexp_contains(campaign, 'nbo|nba|xsell|sales') or (source_medium = 'crm_banken / email') or (regexp_contains(source_medium, 'appen') and regexp_contains(utm_term, 'nbo')) then 'CRM'
+      when channel_group = 'ICA' or channel_group = 'ICA Appen' or channel_group = 'Organic Social' or channel_group = 'Organic Search' or channel_group = 'Direct' or channel_group = 'ICA Försäkring' or channel_group = 'Referral' or channel_group = 'Appen' then 'Owned'
+    else null end as purpose,
+  previous_submit_location,
+  string_agg(distinct status, ', ') as status,
+  case when event_name = 'page_view' and not regexp_contains(page_location, 'ansokan-|ansok-|slutford-signering|min-ekonomi|uppgradera') then session_id else null end as visits,
+  case when event_name = 'mortgage_indicator_nav' or event_name = 'calculator_nav' then session_id else null end as used_calculator,
+  case when regexp_contains(event_name, 'application_start') or (regexp_contains(event_name, 'application_nav') and event_params.step_text = 'start') then session_id else null end as starts,
+  case when regexp_contains(event_name, 'application_subm') then session_id else null end as submits,
+  count(distinct case when regexp_contains(event_name, 'application_subm') and (status = 'AdditionalInformationNeeded' or status = 'Approved' or status = 'AwaitingSignature' or status = 'Delivered' or status = 'DeliveryInProgress') then session_id else null end) as submits_approved,
+  count(distinct case when regexp_contains(event_name, 'application_subm') and status = 'Review' then session_id else null end) as submits_review,
+  count(distinct case when regexp_contains(event_name, 'application_subm') and status = 'Rejected' then session_id else null end) as submits_rejected,
+  sum(event_value) as event_value
+from
+  ${ref('applications')}
+where 
+  date >= event_date_checkpoint
+  --date = '2024-09-09'
+  --and channel_group = 'Paid Traffic'
+  --session_id = 'zYGq+5AsAU/Aoy5/DnXD8dRVb91/B9HcujTtZmQutAk=.17262937381726293736'
+group by 
+  date,
+  session_id,
+  channel_group,
+  source_medium,
+  campaign,
+  utm_term,
+  product,
+  type,
+  purpose,
+  previous_submit_location,
+  visits,
+  used_calculator,
+  starts,
+  submits

@@ -1,0 +1,7 @@
+config {
+  type: "declaration",
+  schema: constants.SC_SOURCE_DATASET,
+  ...(constants.SC_SOURCE_PROJECT) && {database: constants.SC_SOURCE_PROJECT},
+  name: "snapchat_data",
+  description: ""
+}

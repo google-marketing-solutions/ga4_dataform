@@ -1,0 +1,21 @@
+config {
+    type: "table",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model for Google Ads that's used for adding campaign names to metric tables.",
+    tags: ["all", "google_ads"],
+}
+
+with ranked_campaigns as (
+  select
+    campaign_id,
+    campaign_name,
+    _data_date,
+    row_number() over (partition by campaign_id order by _data_date desc) as row_num
+  from ${ref('stg_google_ads_campaign')}
+)
+
+  select
+    campaign_id,
+    campaign_name
+  from ranked_campaigns
+    where row_num = 1

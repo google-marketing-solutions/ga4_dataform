@@ -1,0 +1,34 @@
+config {
+    type: "incremental",
+    schema: constants.INTERMEDIATE_DATASET,
+    description: "Intermediate model for Google Ads campaign stats as cost etc.",
+    tags: ["all", "google_ads"],
+    bigquery: {
+        partitionBy: "_data_date",
+        clusterBy: ["campaign_id"]
+    }
+}
+
+pre_operations {
+  declare event_date_checkpoint default (
+    ${when(incremental(),
+      `select max(_data_date) - interval 3 day from ${self()}`,
+      `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
+    }
+  );
+  ---
+  ${when(incremental(),
+    `delete from ${self()} where _data_date >= event_date_checkpoint`)
+  }
+}
+
+  select
+    cs._data_date,
+    cs.campaign_id,
+    sum(cs.metrics_clicks) as clicks,
+    sum(cs.metrics_cost_micros) / 1000000 as cost
+  from ${ref('stg_google_ads_campaign_stats')} as cs
+    where cs._data_date >= event_date_checkpoint
+  group by
+    1,
+    2
