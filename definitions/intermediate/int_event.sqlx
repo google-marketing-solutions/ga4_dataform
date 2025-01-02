@@ -38,29 +38,16 @@ pre_operations {
 
 with staging as (
     select
-        stg_events.* except(event_traffic_source, collected_traffic_source, event_timestamp, event_datetime),
-        ${helpers.adjustCampaignTimestamp('stg_events')} as event_timestamp,
-        datetime(timestamp_seconds(cast(${helpers.adjustCampaignTimestamp('stg_events')} / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
+        stg_events.* except(collected_traffic_source, event_datetime, session_traffic_source_last_click),
+        datetime(timestamp_seconds(cast(event_timestamp / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}') as event_datetime, --ga4 property reporting time zone
         to_base64(md5(concat(user_pseudo_id, stream_id))) as user_key,
         to_base64(md5(concat(user_pseudo_id, stream_id, ga_session_id))) as ga_session_key,
-        --the below is to deal with misattribution of cpc to organic
         (
         select
         as struct
-            event_traffic_source.source as source,
-            event_traffic_source.medium as medium,
-            event_traffic_source.campaign as campaign,
-            event_traffic_source.content as content,
-            event_traffic_source.term as term,
-            event_traffic_source.gclid as gclid,
-            event_traffic_source.dclid as dclid
-        ) as event_traffic_source,
-        (
-        select
-        as struct
-            ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_source', 'stg_events', null)} as source,
-            ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_medium', 'stg_events', null)} as medium,
-            ${helpers.updatePaidSearchTrafficSource('collected_traffic_source', 'manual_campaign_name', 'stg_events', when(constants.GADS_GET_DATA, 'int_ads_click_campaign.campaign_name', null))} as campaign,
+            ${helpers.updatePaidTrafficSource('collected_traffic_source', 'manual_source', 'stg_events', null)} as source,
+            ${helpers.updatePaidTrafficSource('collected_traffic_source', 'manual_medium', 'stg_events', null)} as medium,
+            ${helpers.updatePaidTrafficSource('collected_traffic_source', 'manual_campaign_name', 'stg_events', when(constants.GADS_GET_DATA, 'int_ads_click_campaign.campaign_name', null))} as campaign,
             collected_traffic_source.manual_campaign_id as manual_campaign_id,
             collected_traffic_source.manual_campaign_name as manual_campaign_name,
             collected_traffic_source.manual_source as manual_source,
@@ -70,25 +57,9 @@ with staging as (
             collected_traffic_source.gclid,
             collected_traffic_source.dclid
         ) as collected_traffic_source,
-        case
-            when (stg_non_custom_events.event_name is null and stg_events.event_traffic_source.medium is null)
-            --stg_non_custom_events.event_name is null indicates the event is a custom event.
-                then 3
-            when stg_events.event_name in ('firebase_campaign', 'campaign_details')
-                then 1
-            when stg_events.event_name in ('first_visit', 'first_open')
-                then 0
-            else 2
-        end as event_sort_order --event source order is used to define the event priority in case it falls on the same timestamp of another when determining session traffic sources.
+        session_traffic_source_last_click
     from ${ref('stg_events')} as stg_events
-        left join ${ref('stg_non_custom_events')} as stg_non_custom_events
-        on stg_events.event_name = stg_non_custom_events.event_name
-        --the above join on stg_non_custom_events aims to identify custom events from automatically collected and recommended events.
-        --custom events sometimes miss values for traffic sources and could cause attribution errors
-        --when trying to identify the first traffic source for sessions with custom event
-        --that are sent with no values for source/medium on the exact same timestamp as the first session event (page_view etc...),
-        --we see an overattribution to null traffic sources.
-        ${when(constants.GADS_GET_DATA, `left join ${constants.INTERMEDIATE_DATASET}.int_ads_click_campaign as int_ads_click_campaign on stg_events.collected_traffic_source.gclid = int_ads_click_campaign.gclid`)}
+    ${when(constants.GADS_GET_DATA, `left join ${constants.INTERMEDIATE_DATASET}.int_ads_click_campaign as int_ads_click_campaign on stg_events.collected_traffic_source.gclid = int_ads_click_campaign.gclid`)}
     where event_date >= event_date_checkpoint
 )
 select

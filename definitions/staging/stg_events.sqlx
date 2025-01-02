@@ -31,17 +31,6 @@ pre_operations {
       `select cast('${constants.START_DATE}' as date format 'yyyymmdd')`)
     }
   );
-  declare is_active_user bool default null; --to avoid errors on old tables where this field didn't exist
-
-  declare collected_traffic_source struct<manual_campaign_id array<string>,
-                                        manual_campaign_name array<string>,
-                                        manual_source array<string>,
-                                        manual_medium array<string>,
-                                        manual_term array<string>,
-                                        manual_content array<string>,
-                                        gclid array<string>,
-                                        dclid array<string>,
-                                        srsltid array<string>> default null; --to avoid errors on old tables where this field didn't exist
   ---
   ${when(incremental(),
     `delete from ${self()} where event_date >= event_date_checkpoint`)
@@ -68,23 +57,46 @@ with
       geo,
       app_info,
       is_active_user,
+      privacy_info,
       (
       select
         as struct traffic_source.source as source,
         traffic_source.medium as medium,
         traffic_source.name as campaign
       ) as traffic_source,
+      collected_traffic_source,
       (
       select
-        as struct collected_traffic_source.manual_campaign_id as manual_campaign_id,
-        lower(collected_traffic_source.manual_campaign_name) as manual_campaign_name,
-        lower(collected_traffic_source.manual_source) as manual_source,
-        lower(collected_traffic_source.manual_medium) as manual_medium,
-        lower(collected_traffic_source.manual_content) as manual_content,
-        lower(collected_traffic_source.manual_term) as manual_term,
-        collected_traffic_source.gclid as gclid,
-        collected_traffic_source.dclid as dclid
-      ) as collected_traffic_source,
+        as struct session_traffic_source_last_click.manual_campaign.campaign_id as manual_campaign_id,
+        session_traffic_source_last_click.manual_campaign.campaign_name as manual_campaign_name,
+        session_traffic_source_last_click.manual_campaign.source as manual_source,
+        session_traffic_source_last_click.manual_campaign.medium as manual_medium,
+        session_traffic_source_last_click.manual_campaign.content as manual_content,
+        session_traffic_source_last_click.manual_campaign.term as manual_term,
+        session_traffic_source_last_click.google_ads_campaign.customer_id as google_ads_customer_id,
+        session_traffic_source_last_click.google_ads_campaign.account_name as google_ads_account_name,
+        session_traffic_source_last_click.google_ads_campaign.campaign_id as google_ads_campaign_id,
+        session_traffic_source_last_click.google_ads_campaign.campaign_name as google_ads_campaign_name,
+        session_traffic_source_last_click.cross_channel_campaign.campaign_id as cross_channel_campaign_id,
+        session_traffic_source_last_click.cross_channel_campaign.campaign_name as cross_channel_campaign_name,
+        session_traffic_source_last_click.cross_channel_campaign.source as cross_channel_source,
+        session_traffic_source_last_click.cross_channel_campaign.medium as cross_channel_medium,
+        session_traffic_source_last_click.cross_channel_campaign.source_platform as cross_channel_source_platform,
+        session_traffic_source_last_click.cross_channel_campaign.default_channel_group as cross_channel_default_channel_group,
+        session_traffic_source_last_click.cross_channel_campaign.primary_channel_group as cross_channel_primary_channel_group,
+        session_traffic_source_last_click.sa360_campaign.campaign_id as sa360_campaign_id,
+        session_traffic_source_last_click.sa360_campaign.campaign_name as sa360_campaign_name,
+        session_traffic_source_last_click.sa360_campaign.source as sa360_source,
+        session_traffic_source_last_click.sa360_campaign.medium as sa360_medium,
+        session_traffic_source_last_click.cm360_campaign.campaign_id as cm360_campaign_id,
+        session_traffic_source_last_click.cm360_campaign.campaign_name as cm360_campaign_name,
+        session_traffic_source_last_click.cm360_campaign.source as cm360_source,
+        session_traffic_source_last_click.cm360_campaign.medium as cm360_medium,
+        session_traffic_source_last_click.dv360_campaign.campaign_id as dv360_campaign_id,
+        session_traffic_source_last_click.dv360_campaign.campaign_name as dv360_campaign_name,
+        session_traffic_source_last_click.dv360_campaign.source as dv360_source,
+        session_traffic_source_last_click.dv360_campaign.medium as dv360_medium,
+      ) as session_traffic_source_last_click,
       stream_id,
       platform,
       ecommerce,
@@ -97,11 +109,11 @@ with
       ${helpers.unnestColumn('event_params', 'page_referrer')} as page_referrer,
       (
       select
-        as struct lower(${helpers.unnestColumn('event_params', 'source')}) as source,
-        lower(${helpers.unnestColumn('event_params', 'medium')}) as medium,
-        lower(${helpers.unnestColumn('event_params', 'campaign')}) as campaign,
-        lower(${helpers.unnestColumn('event_params', 'content')}) as content,
-        lower(${helpers.unnestColumn('event_params', 'term')}) as term,
+        as struct ${helpers.unnestColumn('event_params', 'source')} as source,
+        ${helpers.unnestColumn('event_params', 'medium')} as medium,
+        ${helpers.unnestColumn('event_params', 'campaign')} as campaign,
+        ${helpers.unnestColumn('event_params', 'content')} as content,
+        ${helpers.unnestColumn('event_params', 'term')} as term,
         ${helpers.unnestColumn('event_params', 'gclid')} as gclid,
         ${helpers.unnestColumn('event_params', 'dclid')} as dclid
       ) as event_traffic_source,

@@ -3,8 +3,6 @@
 
 **Please note: this is not an officially supported Google product.**
 
-**NOTE: With the recent [announcement of traffic session source](https://support.google.com/analytics/answer/9164320?hl=en#071924) information fields in the GA4 BigQuery exports, the sessionization logic included in this solution is not necessary anymore, unless the purpose is to sessionize historical data (pre-July 2024)**
-
 ## Contents
 - [What it is](#what-it-is)
 - [Get Started](#get-started)
@@ -21,12 +19,8 @@ The below features are currently available:
 
 1. Building a unique `user_key` and `ga_session_key`.
 2. Providing as output a digestible **session** table, **user_transaction_daily** table, **event** table, etc...
-3. Determining the channels that initiated the session (based on last click) and attributing those channels to the first session traffic sources.
-4. Providing an example of how a custom session attribution logic could be implemented by computing the last non-direct traffic source for the session.
-5. Gclid widening by mapping the GA4 gclid to the Google Ads Data Transfer click-view gclid (Optional setting)
-6. Event level last-click attribution.
-7. Mapping the session traffic sources to [source category mappings](https://support.google.com/analytics/answer/9756891?hl=en#list).
-8. Mapping the session traffic sources to [Default Channel Groups](https://support.google.com/analytics/answer/9756891?hl=en).
+3. Gclid widening by mapping the GA4 gclid to the Google Ads Data Transfer click-view gclid (Optional setting)
+4. Event level last-click attribution.
 
 The project also provides helper functions to unnest BigQuery event_params, extract page urls, and apply default channel groupings (GA4 groupings might get updated.)
 

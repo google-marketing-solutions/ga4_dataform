@@ -23,105 +23,48 @@ config {
     }
 }
 
-with session_first_last_source as (
+with int_session as (
     select
-        user_key,
-        ga_session_key,
-        ga_session_id,
-        user_pseudo_id,
-        --session first traffic source
-        array_agg(
-            if(coalesce(nullif(collected_traffic_source.source, '(direct)'), nullif(collected_traffic_source.medium, '(none)'), nullif(collected_traffic_source.campaign, '(direct)')) is not null,
-                collected_traffic_source,
-                null
-            )
-            order by
-                event_timestamp asc,
-                event_sort_order asc
-            limit 1
-        ) [safe_offset(0)] as first_traffic_source,
-        --session last non-direct traffic source within the session
-        array_agg(
-                if(coalesce(nullif(collected_traffic_source.source, '(direct)'), nullif(collected_traffic_source.medium, '(none)'), nullif(collected_traffic_source.campaign, '(direct)')) is not null,
-                    collected_traffic_source,
-                    null
-            ) ignore nulls
-            order by
-                event_timestamp desc,
-                event_sort_order asc
-            limit 1
-        ) [safe_offset(0)] as last_non_null_traffic_source
-    from ${ref('int_event')}
-    where ga_session_key is not null
-    and event_name not in ('session_start') --this condition could be commented/removed if looking at data post November 2, 2023 when it started being populated.
-    group by
-        user_key,
-        ga_session_key,
-        ga_session_id,
-        user_pseudo_id
-)
-
-, get_last_non_direct_traffic_source as (
-  select
-    a.*,
-    b.session_start_datetime,
-    date(b.session_start_datetime) as session_start_date,
-    b.has_session_start_event,
-    b.session_engaged,
-    b.engagement_time_seconds,
-    b.user_first_visit_datetime,
-    if(coalesce(nullif(a.first_traffic_source.source, '(direct)'), nullif(a.first_traffic_source.medium, '(none)'), nullif(a.first_traffic_source.campaign, '(direct)')) is null,
-      last_value(if(coalesce(nullif(a.last_non_null_traffic_source.source, '(direct)'), nullif(a.last_non_null_traffic_source.medium, '(none)'), nullif(a.last_non_null_traffic_source.campaign, '(direct)')) is not null,
-                    a.last_non_null_traffic_source,
-                    null) ignore nulls)
-      over(partition by a.user_key order by a.ga_session_id
-      range between ${constants.ALL_EVENTS_LOOKBACK_WINDOW} preceding and 1 preceding
-      ),
-      a.first_traffic_source
-     ) as last_non_direct_traffic_source
-  from
-    session_first_last_source a
-    join ${ref('int_session')} b
-    on a.user_key = b.user_key
-    and a.ga_session_key = b.ga_session_key
-)
-
-, add_channel_group as (
-  select
-    t.user_key,
-    t.ga_session_key,
-    t.ga_session_id,
-    t.user_pseudo_id,
-    t.session_start_datetime,
-    t.session_start_date,
-    t.session_engaged,
-    t.engagement_time_seconds,
-    t.user_first_visit_datetime,
+    a.user_key,
+    a.ga_session_key,
+    a.ga_session_id,
+    a.user_pseudo_id,
+    a.session_engaged,
+    a.engagement_time_msec,
+    a.user_first_touch_timestamp,
     (
       select
         as struct
-        if(not t.has_session_start_event, '(not set)', ifnull(t.first_traffic_source.source, '(direct)')) as source,
-        if(not t.has_session_start_event, '(not set)', ifnull(t.first_traffic_source.medium, '(none)')) as medium,
-        if(not t.has_session_start_event, '(not set)', ifnull(t.first_traffic_source.campaign, '(direct)')) as campaign,
-        if(not t.has_session_start_event, '(not set)', cf.source_category) as source_category,
-        if(not t.has_session_start_event, 'Unassigned', ${helpers.groupChannels('t.first_traffic_source.source', 't.first_traffic_source.medium', 'cf.source_category')}) as channel_group
-    ) as first_traffic_source,
-    (
-      select
-        as struct
-        if(not t.has_session_start_event, '(not set)', ifnull(t.last_non_direct_traffic_source.source, '(direct)')) as source,
-        if(not t.has_session_start_event, '(not set)', ifnull(t.last_non_direct_traffic_source.medium, '(none)')) as medium,
-        if(not t.has_session_start_event, '(not set)', ifnull(t.last_non_direct_traffic_source.campaign, '(direct)')) as campaign,
-        if(not t.has_session_start_event, '(not set)', cl.source_category) as source_category,
-        if(not t.has_session_start_event, 'Unassigned', ${helpers.groupChannels('t.last_non_direct_traffic_source.source', 't.last_non_direct_traffic_source.medium', 'cl.source_category')}) as channel_group
-    ) as last_non_direct_traffic_source,
-  from get_last_non_direct_traffic_source t
-    left join ${ref('stg_source_categories')} cf
-      on t.first_traffic_source.source = cf.source
-    left join ${ref('stg_source_categories')} cl
-      on t.last_non_direct_traffic_source.source = cl.source
+        a.session_traffic_source_last_click.cross_channel_campaign_id as cross_channel_campaign_id,
+        a.session_traffic_source_last_click.cross_channel_campaign_name as cross_channel_campaign_name,
+        a.session_traffic_source_last_click.cross_channel_default_channel_group as cross_channel_default_channel_group, 
+        a.session_traffic_source_last_click.cross_channel_primary_channel_group as cross_channel_primary_channel_group,
+        a.session_traffic_source_last_click.cross_channel_source as cross_channel_source,
+        a.session_traffic_source_last_click.cross_channel_medium as cross_channel_medium
+    ) as session_traffic_source_last_click
+  from ${ref('int_event')} a
+)
+, final as (
+  select
+    a.user_key,
+    a.ga_session_key,
+    a.ga_session_id,
+    a.user_pseudo_id,
+    a.session_traffic_source_last_click,
+    min(datetime(timestamp_seconds(a.ga_session_id), '${constants.REPORTING_TIME_ZONE}')) as session_start_datetime,
+    date(min(datetime(timestamp_seconds(a.ga_session_id), '${constants.REPORTING_TIME_ZONE}'))) as session_start_date,
+    max(a.session_engaged) as session_engaged,
+    round(sum(a.engagement_time_msec / 1000), 2) as engagement_time_seconds,
+    min(datetime(timestamp_seconds(cast(a.user_first_touch_timestamp / 1000000 as int64)), '${constants.REPORTING_TIME_ZONE}')) as user_first_visit_datetime
+  from int_session a
+  group by
+    a.user_key,
+    a.ga_session_key,
+    a.ga_session_id,
+    a.user_pseudo_id,
+    a.session_traffic_source_last_click
 )
 
 select
   *
-from add_channel_group
+from final
